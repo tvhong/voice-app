@@ -5,13 +5,6 @@ import AVFoundation
     private var converter: AVAudioConverter?
     private var capturedSamples: [Float] = []
 
-    private let whisperFormat = AVAudioFormat(
-        commonFormat: .pcmFormatFloat32,
-        sampleRate: 16000,
-        channels: 1,
-        interleaved: false
-    )!
-
     func startRecording() throws {
         capturedSamples = []
 
@@ -25,7 +18,8 @@ import AVFoundation
 
         let ratio = 16000.0 / nativeFormat.sampleRate
 
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: nativeFormat) { [weak self] buffer, _ in
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: nativeFormat) {
+            [weak self] buffer, _ in
             self?.process(buffer: buffer, ratio: ratio)
         }
 
@@ -43,26 +37,18 @@ import AVFoundation
         guard let converter else { return }
 
         let inputFrames = AVAudioFrameCount(buffer.frameLength)
-        let outputCapacity = AVAudioFrameCount(Double(inputFrames) * ratio + 1)
+        let outputCapacity = AVAudioFrameCount(Double(inputFrames) * ratio + 1)  // +1 to ensure sufficient buffer
 
-        guard let outputBuffer = AVAudioPCMBuffer(
-            pcmFormat: whisperFormat,
-            frameCapacity: outputCapacity
-        ) else { return }
+        guard
+            let outputBuffer = AVAudioPCMBuffer(
+                pcmFormat: whisperFormat,
+                frameCapacity: outputCapacity
+            )
+        else { return }
 
-        var inputConsumed = false
-        let status = converter.convert(to: outputBuffer, error: nil) { _, outStatus in
-            if inputConsumed {
-                outStatus.pointee = .noDataNow
-                return nil
-            }
-            inputConsumed = true
-            outStatus.pointee = .haveData
-            return buffer
-        }
-
-        guard status != .error,
-              let channelData = outputBuffer.floatChannelData else { return }
+        guard (try? converter.convert(to: outputBuffer, from: buffer)) != nil,
+            let channelData = outputBuffer.floatChannelData
+        else { return }
 
         let frameCount = Int(outputBuffer.frameLength)
         let samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameCount))
@@ -71,6 +57,13 @@ import AVFoundation
             self?.capturedSamples.append(contentsOf: samples)
         }
     }
+
+    private let whisperFormat = AVAudioFormat(
+        commonFormat: .pcmFormatFloat32,
+        sampleRate: 16000,
+        channels: 1,
+        interleaved: false
+    )!
 }
 
 enum AudioError: Error {
