@@ -46,7 +46,21 @@ import AVFoundation
             )
         else { return }
 
-        guard (try? converter.convert(to: outputBuffer, from: buffer)) != nil,
+        // The simpler convert(to:from:) overload requires outputCapacity >= inputFrames,
+        // which fails when downsampling (output is smaller than input). The closure-based
+        // API handles this correctly.
+        var inputConsumed = false
+        let status = converter.convert(to: outputBuffer, error: nil) { _, outStatus in
+            if inputConsumed {
+                outStatus.pointee = .noDataNow
+                return nil
+            }
+            inputConsumed = true
+            outStatus.pointee = .haveData
+            return buffer
+        }
+
+        guard status != .error,
             let channelData = outputBuffer.floatChannelData
         else { return }
 
