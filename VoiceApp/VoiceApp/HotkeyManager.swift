@@ -5,6 +5,7 @@ class HotkeyManager {
     private var localMonitor: Any?
     private let onPress: () -> Void
     private let onRelease: () -> Void
+    private var isFnDown = false
 
     init(onPress: @escaping () -> Void, onRelease: @escaping () -> Void) {
         self.onPress = onPress
@@ -29,9 +30,12 @@ class HotkeyManager {
     }
 
     private func handle(_ event: NSEvent) {
-        if event.modifierFlags.contains(.function) {
+        let fnNow = event.modifierFlags.contains(.function)
+        if fnNow && !isFnDown {
+            isFnDown = true
             onPress()
-        } else {
+        } else if !fnNow && isFnDown {
+            isFnDown = false
             onRelease()
         }
     }
