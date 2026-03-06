@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @AppStorage(ModelConfig.customModelPathKey) private var customModelPath: String = ""
