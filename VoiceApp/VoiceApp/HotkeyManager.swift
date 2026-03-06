@@ -1,7 +1,8 @@
 import AppKit
 
 class HotkeyManager {
-    private var monitor: Any?
+    private var globalMonitor: Any?
+    private var localMonitor: Any?
     private let onPress: () -> Void
     private let onRelease: () -> Void
 
@@ -11,16 +12,20 @@ class HotkeyManager {
     }
 
     func start() {
-        monitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             self?.handle(event)
+        }
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            self?.handle(event)
+            return event
         }
     }
 
     func stop() {
-        if let monitor {
-            NSEvent.removeMonitor(monitor)
-        }
-        monitor = nil
+        if let globalMonitor { NSEvent.removeMonitor(globalMonitor) }
+        if let localMonitor { NSEvent.removeMonitor(localMonitor) }
+        globalMonitor = nil
+        localMonitor = nil
     }
 
     private func handle(_ event: NSEvent) {
