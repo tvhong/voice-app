@@ -1,11 +1,15 @@
 import AppKit
 import SwiftWhisper
 
-struct TranscriptionService {
+class TranscriptionService {
+    private var whisper: Whisper?
+
     func transcribe(audioFrames: [Float]) async throws -> String {
-        let modelURL = try resolveModelURL()
-        let whisper = Whisper(fromFileURL: modelURL)
-        let segments = try await whisper.transcribe(audioFrames: audioFrames)
+        if whisper == nil {
+            let modelURL = try resolveModelURL()
+            whisper = Whisper(fromFileURL: modelURL)
+        }
+        let segments = try await whisper!.transcribe(audioFrames: audioFrames)
         let text = segments.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespaces)
 
         await MainActor.run {
