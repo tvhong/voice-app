@@ -4,7 +4,7 @@
 
 - [x] Commit 1 — `feat: configure Info.plist`
 - [x] Commit 2 — `feat: add AppDelegate with NSStatusItem and NSPopover`
-- [ ] Commit 3 — `feat: implement AudioRecorder`
+- [x] Commit 3 — `feat: implement AudioRecorder`
 - [ ] Commit 4 — `feat: implement TranscriptionService`
 - [ ] Commit 5 — `feat: implement RecorderView SwiftUI state machine`
 - [ ] Commit 6 — `docs: add README with setup instructions`
