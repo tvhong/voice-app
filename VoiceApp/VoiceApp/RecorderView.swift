@@ -13,6 +13,7 @@ struct RecorderView: View {
                     let samples = recorder.stopRecording()
                     sampleCount = samples.count
                     maxAmplitude = samples.map(abs).max()
+                    print("Samples: \(samples.count), Max amplitude: \(maxAmplitude ?? 0)")
                 } else {
                     try? recorder.startRecording()
                 }
