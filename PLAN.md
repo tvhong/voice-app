@@ -42,6 +42,7 @@ any ──error──> error(message)
 
 - SwiftWhisper already added via SPM (v1.2.0)
 - Project uses GENERATE_INFOPLIST_FILE — switched to manual Info.plist in Commit 1
-- Entitlements file needed for sandbox + microphone access
+- Sandboxing disabled (app accesses real `~/Library/Application Support/`; not going to App Store)
+- Entitlements file retains microphone access entitlement
 - Model path: `~/Library/Application Support/VoiceApp/ggml-base.en.bin`
 - Default actor isolation is MainActor (set in build settings) — audio thread appends must use explicit nonisolated context
