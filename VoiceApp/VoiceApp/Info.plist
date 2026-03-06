@@ -20,6 +20,8 @@
     <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
     <key>LSUIElement</key>
     <false/>
+    <key>NSAccessibilityUsageDescription</key>
+    <string>VoiceApp needs Accessibility access to listen for the global hotkey (Fn) to start recording.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>VoiceApp records your microphone to transcribe speech to text.</string>
     <key>NSSupportsSuddenTermination</key>

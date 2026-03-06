@@ -1,9 +1,11 @@
 import AppKit
+import ApplicationServices
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
+    private var hotkeyManager: HotkeyManager!
     let controller = RecordingController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -18,6 +20,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentSize = NSSize(width: 300, height: 200)
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(rootView: RecorderView(controller: controller))
+
+        requestAccessibilityIfNeeded()
+
+        hotkeyManager = HotkeyManager(
+            onPress: { [weak self] in
+                self?.showPopover()
+                Task { await self?.controller.startRecording() }
+            },
+            onRelease: { [weak self] in
+                Task { await self?.controller.stopAndTranscribe() }
+            }
+        )
+        hotkeyManager.start()
+    }
+
+    private func requestAccessibilityIfNeeded() {
+        let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true] as CFDictionary
+        AXIsProcessTrustedWithOptions(options)
+    }
+
+    private func showPopover() {
+        guard let button = statusItem.button, !popover.isShown else { return }
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.contentViewController?.view.window?.makeKey()
     }
 
     @objc func togglePopover() {
