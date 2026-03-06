@@ -1,25 +1,14 @@
-import AVFoundation
 import SwiftUI
 
-enum AppState: Equatable {
-    case idle
-    case recording
-    case transcribing
-    case done(text: String)
-    case error(message: String)
-}
-
 struct RecorderView: View {
-    @State private var state: AppState = .idle
-    @State private var recorder = AudioRecorder()
-    @State private var transcriber = TranscriptionService()
+    var controller: RecordingController
 
     var body: some View {
         VStack(spacing: 16) {
             statusLabel
             actionButton
 
-            if case .done(let text) = state {
+            if case .done(let text) = controller.state {
                 Text(text)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -33,7 +22,7 @@ struct RecorderView: View {
 
     @ViewBuilder
     private var statusLabel: some View {
-        switch state {
+        switch controller.state {
         case .idle:
             Label("Ready to record", systemImage: "mic")
         case .recording:
@@ -55,48 +44,23 @@ struct RecorderView: View {
 
     @ViewBuilder
     private var actionButton: some View {
-        switch state {
+        switch controller.state {
         case .idle, .done, .error:
             Button("Start Recording") {
-                state = .idle
-                Task { await startRecording() }
+                Task { await controller.toggleRecording() }
             }
             .buttonStyle(.borderedProminent)
             .tint(.red)
 
         case .recording:
             Button("Stop & Transcribe") {
-                Task { await stopAndTranscribe() }
+                Task { await controller.toggleRecording() }
             }
             .buttonStyle(.borderedProminent)
 
         case .transcribing:
             Button("Cancel", action: {})
                 .disabled(true)
-        }
-    }
-
-    private func startRecording() async {
-        guard await AVCaptureDevice.requestAccess(for: .audio) else {
-            state = .error(message: "Microphone access denied")
-            return
-        }
-        do {
-            try recorder.startRecording()
-            state = .recording
-        } catch {
-            state = .error(message: error.localizedDescription)
-        }
-    }
-
-    private func stopAndTranscribe() async {
-        let frames = recorder.stopRecording()
-        state = .transcribing
-        do {
-            let text = try await transcriber.transcribe(audioFrames: frames)
-            state = .done(text: text)
-        } catch {
-            state = .error(message: error.localizedDescription)
         }
     }
 }
