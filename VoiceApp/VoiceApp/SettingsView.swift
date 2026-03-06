@@ -22,8 +22,6 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 420)
-        .padding()
     }
 
     private var modelPath: URL {
