@@ -14,9 +14,22 @@
 		16DB0BB52F5A976B001D298C /* VoiceApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VoiceApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		16C6BE092F5B70B700A67B1E /* Exceptions for "VoiceApp" folder in "VoiceApp" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 16DB0BB42F5A976B001D298C /* VoiceApp */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		16DB0BB72F5A976B001D298C /* VoiceApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				16C6BE092F5B70B700A67B1E /* Exceptions for "VoiceApp" folder in "VoiceApp" target */,
+			);
 			path = VoiceApp;
 			sourceTree = "<group>";
 		};
