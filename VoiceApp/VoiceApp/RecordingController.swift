@@ -12,6 +12,7 @@ enum AppState: Equatable {
 @Observable
 class RecordingController {
     var state: AppState = .idle
+    let history = TranscriptionHistory()
     private var recorder = AudioRecorder()
     private var transcriber = TranscriptionService()
 
@@ -35,6 +36,7 @@ class RecordingController {
         state = .transcribing
         do {
             let text = try await transcriber.transcribe(audioFrames: frames)
+            history.add(text)
             state = .done(text: text)
         } catch {
             state = .error(message: error.localizedDescription)
