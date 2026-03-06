@@ -3,11 +3,13 @@ import SwiftWhisper
 
 class TranscriptionService {
     private var whisper: Whisper?
+    private var loadedModelURL: URL?
 
     func transcribe(audioFrames: [Float]) async throws -> String {
-        if whisper == nil {
-            let modelURL = try resolveModelURL()
+        let modelURL = try ModelConfig.resolveModelURL()
+        if whisper == nil || loadedModelURL != modelURL {
             whisper = Whisper(fromFileURL: modelURL)
+            loadedModelURL = modelURL
         }
         let segments = try await whisper!.transcribe(audioFrames: audioFrames)
         let text = segments.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespaces)
@@ -20,27 +22,4 @@ class TranscriptionService {
         return text
     }
 
-    private func resolveModelURL() throws -> URL {
-        let appSupportURL = ModelConfig.appSupportModelURL
-        if FileManager.default.fileExists(atPath: appSupportURL.path) {
-            return appSupportURL
-        }
-
-        if let bundleURL = Bundle.main.url(forResource: "ggml-base.en", withExtension: "bin") {
-            return bundleURL
-        }
-
-        throw TranscriptionError.modelNotFound(expectedPath: appSupportURL.path)
-    }
-}
-
-enum TranscriptionError: LocalizedError {
-    case modelNotFound(expectedPath: String)
-
-    var errorDescription: String? {
-        switch self {
-        case .modelNotFound(let path):
-            return "Whisper model not found. Download it to:\n\(path)"
-        }
-    }
 }
