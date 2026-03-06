@@ -17,8 +17,7 @@ struct TranscriptionService {
     }
 
     private func resolveModelURL() throws -> URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let appSupportURL = appSupport.appendingPathComponent("VoiceApp/ggml-base.en.bin")
+        let appSupportURL = ModelConfig.appSupportModelURL
         if FileManager.default.fileExists(atPath: appSupportURL.path) {
             return appSupportURL
         }

@@ -27,8 +27,7 @@ struct SettingsView: View {
     }
 
     private var modelPath: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("VoiceApp/ggml-base.en.bin")
+        ModelConfig.appSupportModelURL
     }
 
     private var modelExists: Bool {
