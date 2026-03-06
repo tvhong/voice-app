@@ -6,7 +6,7 @@ enum ModelConfig {
         return appSupport.appendingPathComponent("VoiceApp/ggml-base.en.bin")
     }()
 
-    private static let customModelPathKey = "customModelPath"
+    static let customModelPathKey = "customModelPath"
 
     static var customModelURL: URL? {
         get {
