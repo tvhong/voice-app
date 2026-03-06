@@ -33,7 +33,7 @@ struct RecorderView: View {
             Label("Transcribing...", systemImage: "ellipsis")
                 .symbolEffect(.variableColor.iterative)
         case .done:
-            Label("Copied to clipboard", systemImage: "checkmark.circle")
+            Label("Pasted to input", systemImage: "checkmark.circle")
                 .foregroundStyle(.green)
         case .error(let message):
             Label(message, systemImage: "exclamationmark.triangle")

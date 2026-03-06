@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import CoreGraphics
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -29,7 +30,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 Task { await self?.controller.startRecording() }
             },
             onRelease: { [weak self] in
-                Task { await self?.controller.stopAndTranscribe() }
+                Task {
+                    await self?.controller.stopAndTranscribe()
+                    self?.simulatePaste()
+                }
             }
         )
         hotkeyManager.start()
@@ -43,7 +47,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func showPopover() {
         guard let button = statusItem.button, !popover.isShown else { return }
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        popover.contentViewController?.view.window?.makeKey()
     }
 
     @objc func togglePopover() {
@@ -52,7 +55,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             popover.performClose(nil)
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            popover.contentViewController?.view.window?.makeKey()
         }
+    }
+
+    private func simulatePaste() {
+        let src = CGEventSource(stateID: .hidSystemState)
+        let down = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: true)
+        let up   = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: false)
+        down?.flags = .maskCommand
+        up?.flags   = .maskCommand
+        down?.post(tap: .cgAnnotatedSessionEventTap)
+        up?.post(tap: .cgAnnotatedSessionEventTap)
     }
 }
