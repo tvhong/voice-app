@@ -8,6 +8,10 @@ The `transcribe(audioFrames: [Float]) async throws -> String` API is preserved â
 
 Audio format is unchanged: 16kHz mono Float32 (Parakeet uses the same sample rate).
 
+### Why `parakeet-ctc-0.6b` first
+
+`parakeet-ctc-0.6b` is the simplest model to export to Core ML: pure CTC architecture, single feedforward pass, greedy argmax decode, no recurrent state, no hybrid heads to isolate. Once this path is working end-to-end, upgrading to `parakeet-tdt_ctc-110m` (smaller, faster, more accurate) is a well-scoped follow-up with the added complexity of stripping the TDT head and verifying the blank token index.
+
 ---
 
 ## Architecture After Change
