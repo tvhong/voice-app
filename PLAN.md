@@ -2,7 +2,7 @@
 
 ## Commit Checklist
 
-- [ ] Commit 1 — `feat: configure Info.plist`
+- [x] Commit 1 — `feat: configure Info.plist`
 - [ ] Commit 2 — `feat: add AppDelegate with NSStatusItem and NSPopover`
 - [ ] Commit 3 — `feat: implement AudioRecorder`
 - [ ] Commit 4 — `feat: implement TranscriptionService`
