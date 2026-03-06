@@ -3,7 +3,7 @@
 ## Commit Checklist
 
 - [x] Commit 1 — `feat: configure Info.plist`
-- [ ] Commit 2 — `feat: add AppDelegate with NSStatusItem and NSPopover`
+- [x] Commit 2 — `feat: add AppDelegate with NSStatusItem and NSPopover`
 - [ ] Commit 3 — `feat: implement AudioRecorder`
 - [ ] Commit 4 — `feat: implement TranscriptionService`
 - [ ] Commit 5 — `feat: implement RecorderView SwiftUI state machine`
