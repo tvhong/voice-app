@@ -16,6 +16,7 @@ class RecordingController {
     private var transcriber = TranscriptionService()
 
     func startRecording() async {
+        guard state != .recording else { return }
         guard await AVCaptureDevice.requestAccess(for: .audio) else {
             state = .error(message: "Microphone access denied")
             return
@@ -29,6 +30,7 @@ class RecordingController {
     }
 
     func stopAndTranscribe() async {
+        guard state == .recording else { return }
         let frames = recorder.stopRecording()
         state = .transcribing
         do {
