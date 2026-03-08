@@ -141,9 +141,13 @@ struct SettingsView: View {
                     .foregroundStyle(.red)
                 }
             } else {
-                Button("Download") {
+                Button {
                     startDownload(for: model)
+                } label: {
+                    Image(systemName: "arrow.down.to.line")
                 }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Download \(model)")
                 .disabled(isDownloadingModel)
             }
         }
