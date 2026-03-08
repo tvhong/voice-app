@@ -4,29 +4,17 @@ import CoreGraphics
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    private var statusItem: NSStatusItem!
-    private var popover: NSPopover!
+    private var floatingPanel: NSPanel!
+    private var settingsWindow: NSWindow?
     private var hotkeyManager: HotkeyManager!
     let controller = RecordingController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "mic", accessibilityDescription: "VoiceApp")
-            button.action = #selector(togglePopover)
-            button.target = self
-        }
-
-        popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 200)
-        popover.behavior = .transient
-        popover.contentViewController = NSHostingController(rootView: RecorderView(controller: controller))
-
+        setupFloatingPanel()
         requestAccessibilityIfNeeded()
 
         hotkeyManager = HotkeyManager(
             onPress: { [weak self] in
-                self?.showPopover()
                 Task { await self?.controller.startRecording() }
             },
             onRelease: { [weak self] in
@@ -39,23 +27,50 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager.start()
     }
 
+    private func setupFloatingPanel() {
+        let view = FloatingMicView(controller: controller, onSettingsOpen: { [weak self] in
+            self?.openSettings()
+        })
+
+        floatingPanel = NSPanel(
+            contentRect: NSRect(x: 40, y: 40, width: 56, height: 56),
+            styleMask: [.nonactivatingPanel, .borderless],
+            backing: .buffered,
+            defer: false
+        )
+        floatingPanel.level = .floating
+        floatingPanel.isOpaque = false
+        floatingPanel.backgroundColor = .clear
+        floatingPanel.hasShadow = false
+        floatingPanel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
+        floatingPanel.isMovableByWindowBackground = true
+        floatingPanel.contentViewController = NSHostingController(rootView: view)
+        floatingPanel.orderFront(nil)
+    }
+
+    private func openSettings() {
+        if let w = settingsWindow, w.isVisible {
+            w.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        let w = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: 360),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        w.title = "Settings"
+        w.contentViewController = NSHostingController(rootView: SettingsView())
+        w.center()
+        w.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        settingsWindow = w
+    }
+
     private func requestAccessibilityIfNeeded() {
         let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true] as CFDictionary
         AXIsProcessTrustedWithOptions(options)
-    }
-
-    private func showPopover() {
-        guard let button = statusItem.button, !popover.isShown else { return }
-        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-    }
-
-    @objc func togglePopover() {
-        guard let button = statusItem.button else { return }
-        if popover.isShown {
-            popover.performClose(nil)
-        } else {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        }
     }
 
     private func simulatePaste() {
