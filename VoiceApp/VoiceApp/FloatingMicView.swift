@@ -31,7 +31,13 @@ struct FloatingMicView: View {
                 .frame(width: 56, height: 56)
         case .recording, .transcribing:
             RoundedRectangle(cornerRadius: 12)
-                .fill(.regularMaterial)
+                .fill(RadialGradient(
+                    colors: [Color(hex: "#1e5f73"), Color(hex: "#031f3f")],
+                    center: UnitPoint(x: 0.5, y: 0.35),
+                    startRadius: 0,
+                    endRadius: 36
+                ))
+                .padding(4)
         }
     }
 
@@ -43,11 +49,11 @@ struct FloatingMicView: View {
         case .recording:
             Image(systemName: "mic.fill")
                 .font(.title2)
-                .foregroundStyle(.red)
+                .foregroundStyle(Color(hex: "#cfe9ea"))
         case .transcribing:
             Image(systemName: "ellipsis")
                 .font(.title2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color(hex: "#cfe9ea"))
                 .symbolEffect(.variableColor.iterative)
         }
     }
