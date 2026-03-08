@@ -95,14 +95,21 @@ struct SettingsView: View {
         let isDownloadingThisModel = isDownloadingModel && downloadingModelName == model
 
         HStack(spacing: 12) {
-            Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
-                .foregroundStyle(isSelected ? Color.accentColor : .secondary)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(model)
-                Text(WhisperKitModelStore.estimatedDownloadSize(for: model))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            Button {
+                selectedModelName = model
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                        .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(model)
+                        Text(WhisperKitModelStore.estimatedDownloadSize(for: model))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
+            .buttonStyle(.plain)
             Spacer()
 
             if isPrepared {
@@ -140,16 +147,11 @@ struct SettingsView: View {
                 .disabled(isDownloadingModel)
             }
         }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            selectedModelName = model
-        }
     }
 
     private func startDownload(for model: String) {
         guard !isDownloadingModel else { return }
 
-        selectedModelName = model
         isDownloadingModel = true
         downloadingModelName = model
         downloadProgress = 0
