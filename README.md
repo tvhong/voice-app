@@ -1,6 +1,6 @@
 # VoiceApp
 
-A macOS menu bar app that records your microphone and transcribes speech to text using [Whisper](https://github.com/openai/whisper) via [SwiftWhisper](https://github.com/exPHAT/SwiftWhisper). The transcription is automatically copied to your clipboard.
+A macOS menu bar app that records your microphone and transcribes speech to text using [Whisper](https://github.com/openai/whisper) via [WhisperKit](https://github.com/argmaxinc/WhisperKit). The transcription is automatically copied to your clipboard.
 
 Built as a learning project to understand how apps like MacWhisper work under the hood.
 
@@ -11,17 +11,7 @@ Built as a learning project to understand how apps like MacWhisper work under th
 
 ## Setup
 
-### 1. Download the Whisper model
-
-```bash
-mkdir -p ~/Library/Application\ Support/VoiceApp
-curl -L -o ~/Library/Application\ Support/VoiceApp/ggml-base.en.bin \
-  "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin"
-```
-
-This downloads the `base.en` model (~148 MB, English-only). The app will show an error on transcription if the model is missing.
-
-### 2. Build and run
+### 1. Build and run
 
 Open `VoiceApp/VoiceApp.xcodeproj` in Xcode and press **Cmd+R**.
 
@@ -41,9 +31,14 @@ NSStatusItem (AppDelegate)
     └── NSPopover
             └── RecorderView (SwiftUI)
                     ├── AudioRecorder   — AVAudioEngine → 16kHz mono Float32 via AVAudioConverter
-                    └── TranscriptionService — SwiftWhisper + NSPasteboard
+                    └── TranscriptionService — WhisperKit + NSPasteboard
 ```
 
 ## Settings
 
-Open **VoiceApp → Settings** (Cmd+,) to check whether the model file has been found.
+Open **VoiceApp → Settings** (Cmd+,) to choose the WhisperKit model; it will download automatically on first use.
+
+## TODOs:
+
+- [ ] Make it faster
+- [ ] Allow custom dictionary (and post processing?)

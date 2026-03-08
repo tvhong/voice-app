@@ -1,50 +1,37 @@
 import Foundation
+import WhisperKit
 
 enum ModelConfig {
-    static let appSupportModelURL: URL = {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return appSupport.appendingPathComponent("VoiceApp/ggml-base.en.bin")
-    }()
+    static let selectedModelNameKey = "selectedWhisperKitModel"
 
-    static let customModelPathKey = "customModelPath"
+    static let availableModelNames: [String] = [
+        "tiny",
+        "base",
+        "small",
+        "medium",
+        "large-v3"
+    ]
 
-    static var customModelURL: URL? {
+    static var selectedModelName: String {
         get {
-            guard let path = UserDefaults.standard.string(forKey: customModelPathKey) else { return nil }
-            return URL(fileURLWithPath: path)
+            let saved = UserDefaults.standard.string(forKey: selectedModelNameKey)
+            return saved ?? "base"
         }
         set {
-            UserDefaults.standard.set(newValue?.path, forKey: customModelPathKey)
+            UserDefaults.standard.set(newValue, forKey: selectedModelNameKey)
         }
     }
 
-    static func resolveModelURL() throws -> URL {
-        if let custom = customModelURL {
-            guard FileManager.default.fileExists(atPath: custom.path) else {
-                throw ModelError.modelNotFound(expectedPath: custom.path)
-            }
-            return custom
-        }
-
-        if FileManager.default.fileExists(atPath: appSupportModelURL.path) {
-            return appSupportModelURL
-        }
-
-        if let bundleURL = Bundle.main.url(forResource: "ggml-base.en", withExtension: "bin") {
-            return bundleURL
-        }
-
-        throw ModelError.modelNotFound(expectedPath: appSupportModelURL.path)
+    static var whisperKitDownloadBaseURL: URL {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        return appSupport.appendingPathComponent("VoiceApp/WhisperKitModels", isDirectory: true)
     }
-}
 
-enum ModelError: LocalizedError {
-    case modelNotFound(expectedPath: String)
-
-    var errorDescription: String? {
-        switch self {
-        case .modelNotFound(let path):
-            return "Whisper model not found. Expected at:\n\(path)"
-        }
+    static func makeWhisperKitConfig() -> WhisperKitConfig {
+        WhisperKitConfig(
+            model: selectedModelName,
+            downloadBase: whisperKitDownloadBaseURL,
+            verbose: false
+        )
     }
 }
