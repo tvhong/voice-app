@@ -10,17 +10,24 @@ struct ModelOption: Identifiable {
     }
 
     var destURL: URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let appSupport = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return appSupport.appendingPathComponent("VoiceApp/\(id)")
     }
 }
 
 let modelOptions: [ModelOption] = [
-    ModelOption(id: "ggml-tiny.en.bin",      label: "tiny.en",      description: "39 MB · Fastest, lower accuracy"),
-    ModelOption(id: "ggml-tiny.en-q5_1.bin", label: "tiny.en-q5",   description: "32 MB · Fastest, quantized"),
-    ModelOption(id: "ggml-base.en-q5_0.bin", label: "base.en-q5",   description: "57 MB · Good balance — recommended"),
-    ModelOption(id: "ggml-base.en-q8_0.bin", label: "base.en-q8",   description: "75 MB · Near-lossless, still faster than base"),
-    ModelOption(id: "ggml-base.en.bin",      label: "base.en",      description: "74 MB · Default accuracy"),
+    ModelOption(id: "ggml-base.en.bin", label: "base.en", description: "142 MB · Default accuracy"),
+    ModelOption(
+        id: "ggml-base.en-q8_0.bin", label: "base.en-q8",
+        description: "78 MB · Near-lossless, still faster than base"),
+    ModelOption(
+        id: "ggml-base.en-q5_1.bin", label: "base.en-q5",
+        description: "57 MB · Good balance — recommended"),
+    ModelOption(
+        id: "ggml-tiny.en.bin", label: "tiny.en", description: "75 MB · Fastest, lower accuracy"),
+    ModelOption(
+        id: "ggml-tiny.en-q5_1.bin", label: "tiny.en-q5", description: "31 MB · Fastest, quantized"),
 ]
 
 @Observable
@@ -82,14 +89,19 @@ extension ModelDownloader: URLSessionDownloadDelegate {
         totalBytesWritten: Int64,
         totalBytesExpectedToWrite: Int64
     ) {
-        guard let filename = taskToFilename[downloadTask], totalBytesExpectedToWrite > 0 else { return }
+        guard let filename = taskToFilename[downloadTask], totalBytesExpectedToWrite > 0 else {
+            return
+        }
         let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
         DispatchQueue.main.async { self.states[filename] = .downloading(progress) }
     }
 
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+    func urlSession(
+        _ session: URLSession, downloadTask: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+    ) {
         guard let filename = taskToFilename[downloadTask],
-              let option = modelOptions.first(where: { $0.id == filename })
+            let option = modelOptions.first(where: { $0.id == filename })
         else { return }
         taskToFilename.removeValue(forKey: downloadTask)
 
@@ -106,7 +118,8 @@ extension ModelDownloader: URLSessionDownloadDelegate {
         }
     }
 
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?)
+    {
         guard let error, let filename = taskToFilename[task] else { return }
         taskToFilename.removeValue(forKey: task)
         DispatchQueue.main.async { self.states[filename] = .error(error.localizedDescription) }
