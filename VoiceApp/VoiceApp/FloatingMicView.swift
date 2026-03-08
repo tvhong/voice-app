@@ -6,11 +6,8 @@ struct FloatingMicView: View {
 
     var body: some View {
         ZStack {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 56, height: 56)
-
-            stateOverlay
+            background
+            foregroundIcon
         }
         .frame(width: 56, height: 56)
         .shadow(color: .black.opacity(0.3), radius: 6, y: 2)
@@ -26,22 +23,31 @@ struct FloatingMicView: View {
     }
 
     @ViewBuilder
-    private var stateOverlay: some View {
+    private var background: some View {
+        switch controller.state {
+        case .idle, .done, .error:
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 56, height: 56)
+        case .recording, .transcribing:
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.regularMaterial)
+        }
+    }
+
+    @ViewBuilder
+    private var foregroundIcon: some View {
         switch controller.state {
         case .idle, .done, .error:
             EmptyView()
-
         case .recording:
             Image(systemName: "mic.fill")
                 .font(.title2)
                 .foregroundStyle(.red)
-                .shadow(color: .black.opacity(0.5), radius: 2)
-
         case .transcribing:
             Image(systemName: "ellipsis")
                 .font(.title2)
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.5), radius: 2)
+                .foregroundStyle(.secondary)
                 .symbolEffect(.variableColor.iterative)
         }
     }
