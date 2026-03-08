@@ -28,15 +28,14 @@ struct FloatingMicView: View {
     private var stateIcon: some View {
         switch controller.state {
         case .idle, .done, .error:
-            Image(systemName: "mic")
-                .font(.title2)
-                .foregroundStyle(.primary)
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 38, height: 38)
 
         case .recording:
             Image(systemName: "mic.fill")
                 .font(.title2)
                 .foregroundStyle(.red)
-                .symbolEffect(.pulse)
 
         case .transcribing:
             Image(systemName: "ellipsis")

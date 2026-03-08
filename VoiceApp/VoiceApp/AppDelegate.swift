@@ -32,8 +32,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.openSettings()
         })
 
+        let panelSize = NSSize(width: 56, height: 56)
         floatingPanel = NSPanel(
-            contentRect: NSRect(x: 40, y: 40, width: 56, height: 56),
+            contentRect: NSRect(origin: .zero, size: panelSize),
             styleMask: [.nonactivatingPanel, .borderless],
             backing: .buffered,
             defer: false
@@ -45,6 +46,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         floatingPanel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary]
         floatingPanel.isMovableByWindowBackground = true
         floatingPanel.contentViewController = NSHostingController(rootView: view)
+
+        if let screen = NSScreen.main {
+            let visible = screen.visibleFrame
+            let x = visible.midX - panelSize.width / 2
+            let y = visible.minY + 20
+            floatingPanel.setFrameOrigin(NSPoint(x: x, y: y))
+        }
+
         floatingPanel.orderFront(nil)
     }
 
