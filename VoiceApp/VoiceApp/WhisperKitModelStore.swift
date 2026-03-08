@@ -45,7 +45,7 @@ enum WhisperKitModelStore {
         ) else { return false }
 
         return hasRequiredModelFiles(fileManager: fileManager, modelFolder: modelFolder)
-            && hasRequiredTokenizerFiles(
+            && hasValidTokenizerFilesIfPresent(
                 fileManager: fileManager,
                 modelsRoot: modelsRoot,
                 modelSuffix: modelSuffix
@@ -109,7 +109,7 @@ enum WhisperKitModelStore {
         )
     }
 
-    private static func hasRequiredTokenizerFiles(
+    private static func hasValidTokenizerFilesIfPresent(
         fileManager: FileManager,
         modelsRoot: URL,
         modelSuffix: String
@@ -117,6 +117,12 @@ enum WhisperKitModelStore {
         let tokenizerFolder = modelsRoot
             .appendingPathComponent("openai", isDirectory: true)
             .appendingPathComponent(modelSuffix, isDirectory: true)
+
+        // Newer WhisperKit layouts may not place tokenizer files in this cache path.
+        // If the tokenizer folder is absent, treat the model as prepared.
+        guard fileManager.fileExists(atPath: tokenizerFolder.path) else {
+            return true
+        }
 
         return hasAllFiles(
             fileManager: fileManager,
