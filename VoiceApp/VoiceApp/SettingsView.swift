@@ -114,8 +114,9 @@ struct SettingsView: View {
 
             if isPrepared {
                 HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                    Text("Downloaded")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     Button {
                         modelPendingDeletion = model
                     } label: {
