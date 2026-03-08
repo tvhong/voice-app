@@ -45,7 +45,7 @@ Open **VoiceApp → Settings** (Cmd+,) to choose the WhisperKit model; it will d
   - [x] List of items
   - [x] Allow deleting downloaded models to save disk space
   - [x] Download doesn't mean select
-- [ ] Model verification - broken atm
+- [x] Model verification - broken atm
 - [ ] Updating the UI so that it's not a top bar anymore
 - [ ] Allow custom dictionary (and post processing?)
 - [x] Add an icon
