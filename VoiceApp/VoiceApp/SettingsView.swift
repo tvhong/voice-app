@@ -11,7 +11,7 @@ struct SettingsView: View {
     @State private var activeDownloadID: UUID?
 
     private var isPrepared: Bool {
-        ModelConfig.isModelPrepared(selectedModelName)
+        WhisperKitModelStore.isModelPrepared(selectedModelName)
     }
 
     var body: some View {
@@ -29,11 +29,11 @@ struct SettingsView: View {
                 Text("To avoid a slow first transcription, download the selected model now.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text("Estimated download size: \(ModelConfig.estimatedDownloadSize(for: selectedModelName))")
+                Text("Estimated download size: \(WhisperKitModelStore.estimatedDownloadSize(for: selectedModelName))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text("Cache location: \(ModelConfig.whisperKitDownloadBaseURL.path)")
+                Text("Cache location: \(WhisperKitModelStore.downloadBaseURL.path)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
@@ -102,7 +102,7 @@ struct SettingsView: View {
             do {
                 _ = try await WhisperKit.download(
                     variant: model,
-                    downloadBase: ModelConfig.whisperKitDownloadBaseURL
+                    downloadBase: WhisperKitModelStore.downloadBaseURL
                 ) { progress in
                     Task { @MainActor in
                         guard activeDownloadID == downloadID else { return }
@@ -125,7 +125,7 @@ struct SettingsView: View {
                         return
                     }
                     downloadProgress = 1
-                    downloadStatus = ModelConfig.isModelPrepared(model)
+                    downloadStatus = WhisperKitModelStore.isModelPrepared(model)
                         ? "\(model) is downloaded and ready."
                         : "\(model) download incomplete. Please retry."
                     isDownloadingModel = false

@@ -11,7 +11,7 @@ class TranscriptionService {
     func transcribe(audioFrames: [Float]) async throws -> String {
         let modelName = ModelConfig.selectedModelName
         if whisperKit == nil || loadedModelName != modelName {
-            let config = ModelConfig.makeWhisperKitConfig()
+            let config = WhisperKitModelStore.makeConfig(model: modelName)
             whisperKit = try await WhisperKit(config)
             loadedModelName = modelName
         }
