@@ -93,13 +93,10 @@ private struct ModelRow: View {
 
             switch state {
             case .notDownloaded:
-                Button("Download", action: onDownload).buttonStyle(.borderless)
+                Button("Download", action: onDownload).buttonStyle(.bordered)
             case .downloading:
-                Button("Cancel", action: onCancel).buttonStyle(.borderless).foregroundStyle(.secondary)
+                Button("Cancel", action: onCancel).buttonStyle(.bordered).foregroundStyle(.secondary)
             case .downloaded:
-                if !isActive {
-                    Button("Use", action: onActivate).buttonStyle(.borderless)
-                }
                 Button(action: onDelete) {
                     Image(systemName: "trash")
                 }
