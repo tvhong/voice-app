@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var downloadStatus = ""
     @State private var downloadError = ""
     @State private var downloadTask: Task<Void, Never>?
+    @State private var activeDownloadID: UUID?
 
     private var isPrepared: Bool {
         ModelConfig.isModelPrepared(selectedModelName)
@@ -95,6 +96,8 @@ struct SettingsView: View {
         downloadStatus = "Starting download for \(selectedModelName)..."
 
         let model = selectedModelName
+        let downloadID = UUID()
+        activeDownloadID = downloadID
         downloadTask = Task {
             do {
                 _ = try await WhisperKit.download(
@@ -102,6 +105,7 @@ struct SettingsView: View {
                     downloadBase: ModelConfig.whisperKitDownloadBaseURL
                 ) { progress in
                     Task { @MainActor in
+                        guard activeDownloadID == downloadID else { return }
                         if progress.totalUnitCount > 0 {
                             downloadProgress = Double(progress.completedUnitCount) / Double(progress.totalUnitCount)
                         }
@@ -111,25 +115,40 @@ struct SettingsView: View {
                 }
 
                 await MainActor.run {
-                    ModelConfig.markModelPrepared(model)
+                    guard activeDownloadID == downloadID else { return }
+                    if Task.isCancelled {
+                        downloadStatus = "Download canceled."
+                        downloadError = ""
+                        isDownloadingModel = false
+                        downloadTask = nil
+                        activeDownloadID = nil
+                        return
+                    }
                     downloadProgress = 1
-                    downloadStatus = "\(model) is downloaded and ready."
+                    downloadStatus = ModelConfig.isModelPrepared(model)
+                        ? "\(model) is downloaded and ready."
+                        : "\(model) download incomplete. Please retry."
                     isDownloadingModel = false
                     downloadTask = nil
+                    activeDownloadID = nil
                 }
             } catch is CancellationError {
                 await MainActor.run {
+                    guard activeDownloadID == downloadID else { return }
                     downloadStatus = "Download canceled."
                     downloadError = ""
                     isDownloadingModel = false
                     downloadTask = nil
+                    activeDownloadID = nil
                 }
             } catch {
                 await MainActor.run {
+                    guard activeDownloadID == downloadID else { return }
                     downloadError = "Download failed: \(error.localizedDescription)"
                     downloadStatus = ""
                     isDownloadingModel = false
                     downloadTask = nil
+                    activeDownloadID = nil
                 }
             }
         }
@@ -139,6 +158,7 @@ struct SettingsView: View {
         downloadTask?.cancel()
         downloadTask = nil
         isDownloadingModel = false
+        activeDownloadID = nil
         downloadStatus = "Download canceled."
     }
 }

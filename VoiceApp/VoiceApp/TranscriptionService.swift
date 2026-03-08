@@ -14,7 +14,6 @@ class TranscriptionService {
             let config = ModelConfig.makeWhisperKitConfig()
             whisperKit = try await WhisperKit(config)
             loadedModelName = modelName
-            ModelConfig.markModelPrepared(modelName)
         }
 
         let rawDuration = Double(audioFrames.count) / 16000
