@@ -81,28 +81,14 @@ enum ModelIntegrityVerifier {
     }
 
     private static func sha256(for fileURL: URL) -> String? {
-        let handle: FileHandle
         do {
-            handle = try FileHandle(forReadingFrom: fileURL)
+            let data = try Data(contentsOf: fileURL)
+            let digest = SHA256.hash(data: data)
+            return digest.map { String(format: "%02x", $0) }.joined()
         } catch {
-            print("[Verify] SHA-256 open failed for '\(fileURL.lastPathComponent)': \(error)")
-            print("[Verify]   full path: \(fileURL.path)")
-            print("[Verify]   file exists: \(FileManager.default.fileExists(atPath: fileURL.path))")
-            if let attrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path) {
-                print("[Verify]   file type: \(attrs[.type] ?? "unknown")")
-            }
+            print("[Verify] SHA-256 failed for '\(fileURL.lastPathComponent)': \(error)")
             return nil
         }
-        defer { try? handle.close() }
-
-        var hasher = SHA256()
-        while true {
-            guard let data = try? handle.read(upToCount: 1_048_576) else { return nil }
-            if data.isEmpty { break }
-            hasher.update(data: data)
-        }
-
-        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     private static let expectedHashesByModel: [String: [String: String]] = [
