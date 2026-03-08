@@ -2,6 +2,16 @@ import Foundation
 import WhisperKit
 
 enum WhisperKitModelStore {
+    private static let requiredModelFiles = [
+        "config.json",
+        "generation_config.json",
+        "AudioEncoder.mlmodelc/coremldata.bin",
+        "MelSpectrogram.mlmodelc/coremldata.bin",
+        "TextDecoder.mlmodelc/coremldata.bin"
+    ]
+
+    private static let requiredTokenizerFiles = ["tokenizer.json", "tokenizer_config.json"]
+
     private static let estimatedDownloadSizes: [String: String] = [
         "tiny": "~75 MB",
         "base": "~142 MB",
@@ -28,54 +38,85 @@ enum WhisperKitModelStore {
         let modelSuffix = "whisper-\(model)"
         let modelsRoot = downloadBaseURL.appendingPathComponent("models", isDirectory: true)
 
+        guard let modelFolder = resolveModelFolder(
+            fileManager: fileManager,
+            modelsRoot: modelsRoot,
+            modelSuffix: modelSuffix
+        ) else { return false }
+
+        return hasRequiredModelFiles(fileManager: fileManager, modelFolder: modelFolder)
+            && hasRequiredTokenizerFiles(
+                fileManager: fileManager,
+                modelsRoot: modelsRoot,
+                modelSuffix: modelSuffix
+            )
+    }
+
+    static func estimatedDownloadSize(for model: String) -> String {
+        estimatedDownloadSizes[model] ?? "Unknown"
+    }
+
+    private static func resolveModelFolder(
+        fileManager: FileManager,
+        modelsRoot: URL,
+        modelSuffix: String
+    ) -> URL? {
         guard let enumerator = fileManager.enumerator(
             at: modelsRoot,
             includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles]
         ) else {
-            return false
+            return nil
         }
 
-        var resolvedModelFolder: URL?
         for case let url as URL in enumerator {
-            guard (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else { continue }
+            guard isDirectory(url) else { continue }
             if url.lastPathComponent.hasSuffix(modelSuffix) {
-                resolvedModelFolder = url
-                break
+                return url
             }
         }
 
-        guard let modelFolder = resolvedModelFolder else { return false }
+        return nil
+    }
 
-        let requiredModelFiles = [
-            "config.json",
-            "generation_config.json",
-            "AudioEncoder.mlmodelc/coremldata.bin",
-            "MelSpectrogram.mlmodelc/coremldata.bin",
-            "TextDecoder.mlmodelc/coremldata.bin"
-        ]
+    private static func hasRequiredModelFiles(fileManager: FileManager, modelFolder: URL) -> Bool {
+        hasAllFiles(
+            fileManager: fileManager,
+            root: modelFolder,
+            relativePaths: requiredModelFiles
+        )
+    }
 
-        for relativePath in requiredModelFiles {
-            let absolutePath = modelFolder.appendingPathComponent(relativePath).path
-            if !fileManager.fileExists(atPath: absolutePath) {
-                return false
-            }
-        }
-
+    private static func hasRequiredTokenizerFiles(
+        fileManager: FileManager,
+        modelsRoot: URL,
+        modelSuffix: String
+    ) -> Bool {
         let tokenizerFolder = modelsRoot
             .appendingPathComponent("openai", isDirectory: true)
             .appendingPathComponent(modelSuffix, isDirectory: true)
-        let requiredTokenizerFiles = ["tokenizer.json", "tokenizer_config.json"]
-        for fileName in requiredTokenizerFiles {
-            if !fileManager.fileExists(atPath: tokenizerFolder.appendingPathComponent(fileName).path) {
+
+        return hasAllFiles(
+            fileManager: fileManager,
+            root: tokenizerFolder,
+            relativePaths: requiredTokenizerFiles
+        )
+    }
+
+    private static func hasAllFiles(
+        fileManager: FileManager,
+        root: URL,
+        relativePaths: [String]
+    ) -> Bool {
+        for relativePath in relativePaths {
+            if !fileManager.fileExists(atPath: root.appendingPathComponent(relativePath).path) {
                 return false
             }
         }
-
         return true
     }
 
-    static func estimatedDownloadSize(for model: String) -> String {
-        estimatedDownloadSizes[model] ?? "Unknown"
+    private static func isDirectory(_ url: URL) -> Bool {
+        (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
     }
 }
