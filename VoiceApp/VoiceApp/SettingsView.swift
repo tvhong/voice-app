@@ -12,6 +12,13 @@ struct SettingsView: View {
     @State private var activeDownloadID: UUID?
     @State private var modelPendingDeletion: String?
 
+    private var deleteDialogTitle: String {
+        if let modelPendingDeletion {
+            return "Delete \(modelPendingDeletion)?"
+        }
+        return "Delete downloaded model?"
+    }
+
     var body: some View {
         Form {
             Section("WhisperKit") {
@@ -58,7 +65,7 @@ struct SettingsView: View {
             cancelDownload()
         }
         .confirmationDialog(
-            "Delete downloaded model?",
+            deleteDialogTitle,
             isPresented: Binding(
                 get: { modelPendingDeletion != nil },
                 set: { isPresented in
@@ -70,8 +77,10 @@ struct SettingsView: View {
             titleVisibility: .visible,
             presenting: modelPendingDeletion
         ) { model in
-            Button("Delete \(model)", role: .destructive) {
+            Button(role: .destructive) {
                 deleteModel(model)
+            } label: {
+                Label("Delete", systemImage: "trash")
             }
             Button("Cancel", role: .cancel) {}
         } message: { model in
@@ -116,8 +125,10 @@ struct SettingsView: View {
                     Text("\(Int(downloadProgress * 100))%")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Button("Cancel") {
+                    Button {
                         cancelDownload()
+                    } label: {
+                        Image(systemName: "xmark.circle")
                     }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.red)
