@@ -6,14 +6,15 @@ struct FloatingMicView: View {
 
     var body: some View {
         ZStack {
-            Circle()
-                .fill(.regularMaterial)
-                .shadow(color: .black.opacity(0.3), radius: 6, y: 2)
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 56, height: 56)
 
-            stateIcon
+            stateOverlay
         }
         .frame(width: 56, height: 56)
-        .contentShape(Circle())
+        .shadow(color: .black.opacity(0.3), radius: 6, y: 2)
+        .contentShape(Rectangle())
         .onTapGesture {
             Task { await controller.toggleRecording() }
         }
@@ -25,22 +26,22 @@ struct FloatingMicView: View {
     }
 
     @ViewBuilder
-    private var stateIcon: some View {
+    private var stateOverlay: some View {
         switch controller.state {
         case .idle, .done, .error:
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 38, height: 38)
+            EmptyView()
 
         case .recording:
             Image(systemName: "mic.fill")
                 .font(.title2)
                 .foregroundStyle(.red)
+                .shadow(color: .black.opacity(0.5), radius: 2)
 
         case .transcribing:
             Image(systemName: "ellipsis")
                 .font(.title2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.5), radius: 2)
                 .symbolEffect(.variableColor.iterative)
         }
     }
