@@ -1,7 +1,17 @@
 import SwiftUI
+import WhisperKit
 
 struct SettingsView: View {
     @AppStorage(ModelConfig.selectedModelNameKey) private var selectedModelName: String = "base"
+    @State private var isDownloadingModel = false
+    @State private var downloadProgress: Double = 0
+    @State private var downloadStatus = ""
+    @State private var downloadError = ""
+    @State private var downloadTask: Task<Void, Never>?
+
+    private var isPrepared: Bool {
+        ModelConfig.isModelPrepared(selectedModelName)
+    }
 
     var body: some View {
         Form {
@@ -15,13 +25,120 @@ struct SettingsView: View {
                 Text("Models are downloaded automatically by WhisperKit on first use.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Text("To avoid a slow first transcription, download the selected model now.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("Estimated download size: \(ModelConfig.estimatedDownloadSize(for: selectedModelName))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 Text("Cache location: \(ModelConfig.whisperKitDownloadBaseURL.path)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+
+                HStack {
+                    Text("Selected model status")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(isPrepared ? "Ready" : "Not downloaded")
+                        .foregroundStyle(isPrepared ? .green : .secondary)
+                }
+
+                HStack(spacing: 8) {
+                    Button(isDownloadingModel ? "Downloading..." : "Download Selected Model") {
+                        startDownload()
+                    }
+                    .disabled(isDownloadingModel)
+
+                    if isDownloadingModel {
+                        Button("Cancel") {
+                            cancelDownload()
+                        }
+                        .foregroundStyle(.red)
+
+                        ProgressView(value: downloadProgress)
+                            .frame(width: 140)
+                    }
+                }
+
+                if !downloadStatus.isEmpty {
+                    Text(downloadStatus)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if !downloadError.isEmpty {
+                    Text(downloadError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
             }
         }
         .formStyle(.grouped)
+        .onChange(of: selectedModelName) {
+            downloadStatus = ""
+            downloadError = ""
+            downloadProgress = 0
+        }
+        .onDisappear {
+            cancelDownload()
+        }
+    }
+
+    private func startDownload() {
+        guard !isDownloadingModel else { return }
+
+        isDownloadingModel = true
+        downloadProgress = 0
+        downloadError = ""
+        downloadStatus = "Starting download for \(selectedModelName)..."
+
+        let model = selectedModelName
+        downloadTask = Task {
+            do {
+                _ = try await WhisperKit.download(
+                    variant: model,
+                    downloadBase: ModelConfig.whisperKitDownloadBaseURL
+                ) { progress in
+                    Task { @MainActor in
+                        if progress.totalUnitCount > 0 {
+                            downloadProgress = Double(progress.completedUnitCount) / Double(progress.totalUnitCount)
+                        }
+                        let percent = Int(downloadProgress * 100)
+                        downloadStatus = "Downloading \(model)... \(percent)%"
+                    }
+                }
+
+                await MainActor.run {
+                    ModelConfig.markModelPrepared(model)
+                    downloadProgress = 1
+                    downloadStatus = "\(model) is downloaded and ready."
+                    isDownloadingModel = false
+                    downloadTask = nil
+                }
+            } catch is CancellationError {
+                await MainActor.run {
+                    downloadStatus = "Download canceled."
+                    downloadError = ""
+                    isDownloadingModel = false
+                    downloadTask = nil
+                }
+            } catch {
+                await MainActor.run {
+                    downloadError = "Download failed: \(error.localizedDescription)"
+                    downloadStatus = ""
+                    isDownloadingModel = false
+                    downloadTask = nil
+                }
+            }
+        }
+    }
+
+    private func cancelDownload() {
+        downloadTask?.cancel()
+        downloadTask = nil
+        isDownloadingModel = false
+        downloadStatus = "Download canceled."
     }
 }

@@ -3,6 +3,7 @@ import WhisperKit
 
 enum ModelConfig {
     static let selectedModelNameKey = "selectedWhisperKitModel"
+    static let preparedModelsKey = "preparedWhisperKitModels"
 
     static let availableModelNames: [String] = [
         "tiny",
@@ -10,6 +11,14 @@ enum ModelConfig {
         "small",
         "medium",
         "large-v3"
+    ]
+
+    private static let estimatedDownloadSizes: [String: String] = [
+        "tiny": "~75 MB",
+        "base": "~142 MB",
+        "small": "~466 MB",
+        "medium": "~1.5 GB",
+        "large-v3": "~3.1 GB"
     ]
 
     static var selectedModelName: String {
@@ -33,5 +42,20 @@ enum ModelConfig {
             downloadBase: whisperKitDownloadBaseURL,
             verbose: false
         )
+    }
+
+    static func markModelPrepared(_ model: String) {
+        var models = Set(UserDefaults.standard.stringArray(forKey: preparedModelsKey) ?? [])
+        models.insert(model)
+        UserDefaults.standard.set(Array(models).sorted(), forKey: preparedModelsKey)
+    }
+
+    static func isModelPrepared(_ model: String) -> Bool {
+        let models = Set(UserDefaults.standard.stringArray(forKey: preparedModelsKey) ?? [])
+        return models.contains(model)
+    }
+
+    static func estimatedDownloadSize(for model: String) -> String {
+        estimatedDownloadSizes[model] ?? "Unknown"
     }
 }
