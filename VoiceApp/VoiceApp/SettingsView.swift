@@ -28,25 +28,13 @@ struct SettingsView: View {
                     }
                 }
 
-                Text("Models are downloaded automatically by WhisperKit on first use.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(
-                    "Estimated download size: \(WhisperKitModelStore.estimatedDownloadSize(for: selectedModelName))"
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
                 Text("Cache location: \(WhisperKitModelStore.downloadBaseURL.path)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
-
-                if !downloadStatus.isEmpty {
-                    Text(downloadStatus)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Text("Models are downloaded automatically by WhisperKit on first use.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 if !downloadError.isEmpty {
                     Text(downloadError)
