@@ -2,103 +2,48 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
-private struct ModelOption: Identifiable {
-    let id: String  // filename
-    let label: String
-    let description: String
-
-    var downloadURL: String {
-        "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/\(id)"
-    }
-
-    var curlCommand: String {
-        let dest = ("~/Library/Application Support/VoiceApp/\(id)" as NSString).expandingTildeInPath
-        return "curl -L -o \"\(dest)\" \"\(downloadURL)\""
-    }
-}
-
-private let modelOptions: [ModelOption] = [
-    ModelOption(id: "ggml-tiny.en.bin",     label: "tiny.en (39 MB)",      description: "Fastest, lower accuracy"),
-    ModelOption(id: "ggml-tiny.en-q5_1.bin", label: "tiny.en-q5 (32 MB)", description: "Fastest, quantized"),
-    ModelOption(id: "ggml-base.en-q5_0.bin", label: "base.en-q5 (57 MB)", description: "Good balance — recommended"),
-    ModelOption(id: "ggml-base.en-q8_0.bin", label: "base.en-q8 (75 MB)", description: "Near-lossless, still faster than base"),
-]
-
 struct SettingsView: View {
     @AppStorage(ModelConfig.customModelPathKey) private var customModelPath: String = ""
-    @State private var selectedModelID = modelOptions[2].id
-    @State private var copied = false
+    @State private var downloader = ModelDownloader()
 
-    private var modelURL: URL {
+    private var activeModelURL: URL {
         customModelPath.isEmpty ? ModelConfig.appSupportModelURL : URL(fileURLWithPath: customModelPath)
-    }
-
-    private var modelExists: Bool {
-        FileManager.default.fileExists(atPath: modelURL.path)
-    }
-
-    private var selectedOption: ModelOption {
-        modelOptions.first { $0.id == selectedModelID } ?? modelOptions[2]
     }
 
     var body: some View {
         Form {
             Section("Whisper Model") {
+                ForEach(modelOptions) { option in
+                    ModelRow(
+                        option: option,
+                        state: downloader.states[option.id] ?? .notDownloaded,
+                        isActive: activeModelURL == option.destURL,
+                        onDownload: { downloader.download(option) },
+                        onCancel: { downloader.cancel(option) },
+                        onDelete: {
+                            if activeModelURL == option.destURL { customModelPath = "" }
+                            downloader.delete(option)
+                        },
+                        onActivate: { customModelPath = option.destURL.path }
+                    )
+                }
+
                 HStack {
-                    Image(systemName: modelExists ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundStyle(modelExists ? .green : .red)
-                    Text(modelExists ? "Model found" : "Model not found")
-                    Spacer()
-                    if !customModelPath.isEmpty {
-                        Button("Reset") {
-                            customModelPath = ""
-                            ModelConfig.customModelURL = nil
-                        }
-                        .buttonStyle(.borderless)
+                    Text("Custom model")
                         .foregroundStyle(.secondary)
+                    Spacer()
+                    if !customModelPath.isEmpty && !modelOptions.contains(where: { $0.destURL.path == customModelPath }) {
+                        Button("Reset") { customModelPath = "" }
+                            .buttonStyle(.borderless)
+                            .foregroundStyle(.secondary)
                     }
                     Button("Choose…") { pickModel() }
                         .buttonStyle(.borderless)
                 }
-                Text(modelURL.path)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-            }
-
-            Section("Download a Faster Model") {
-                Picker("Model", selection: $selectedModelID) {
-                    ForEach(modelOptions) { option in
-                        Text(option.label).tag(option.id)
-                    }
-                }
-                Text(selectedOption.description)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                HStack(alignment: .top) {
-                    Text(selectedOption.curlCommand)
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer()
-                    Button(copied ? "Copied!" : "Copy") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(selectedOption.curlCommand, forType: .string)
-                        copied = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copied = false }
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(copied ? Color.secondary : Color.accentColor)
-                }
-
-                Text("Run the command in Terminal, then use Choose… above to select the downloaded file.")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
             }
         }
         .formStyle(.grouped)
+        .onAppear { downloader.refresh() }
     }
 
     private func pickModel() {
@@ -111,6 +56,63 @@ struct SettingsView: View {
         if panel.runModal() == .OK, let url = panel.url {
             ModelConfig.customModelURL = url
             customModelPath = url.path
+        }
+    }
+}
+
+private struct ModelRow: View {
+    let option: ModelOption
+    let state: ModelDownloader.DownloadState
+    let isActive: Bool
+    let onDownload: () -> Void
+    let onCancel: () -> Void
+    let onDelete: () -> Void
+    let onActivate: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            // Active indicator
+            Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
+                .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                .onTapGesture {
+                    if case .downloaded = state { onActivate() }
+                }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(option.label).fontWeight(isActive ? .semibold : .regular)
+                Text(option.description).font(.caption).foregroundStyle(.secondary)
+                if case .downloading(let progress) = state {
+                    ProgressView(value: progress).frame(maxWidth: 160)
+                }
+                if case .error(let msg) = state {
+                    Text(msg).font(.caption).foregroundStyle(.red)
+                }
+            }
+
+            Spacer()
+
+            switch state {
+            case .notDownloaded:
+                Button("Download", action: onDownload).buttonStyle(.borderless)
+            case .downloading:
+                Button("Cancel", action: onCancel).buttonStyle(.borderless).foregroundStyle(.secondary)
+            case .downloaded:
+                if !isActive {
+                    Button("Use", action: onActivate).buttonStyle(.borderless)
+                }
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+            case .error:
+                Button("Retry", action: onDownload).buttonStyle(.borderless).foregroundStyle(.red)
+            }
+        }
+        .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if case .downloaded = state { onActivate() }
         }
     }
 }
