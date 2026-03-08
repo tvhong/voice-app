@@ -182,6 +182,7 @@ struct SettingsView: View {
                     }
                 }
 
+                let isVerified = WhisperKitModelStore.verifyAndMarkModel(model)
                 await MainActor.run {
                     guard activeDownloadID == downloadID else { return }
                     if Task.isCancelled {
@@ -195,9 +196,9 @@ struct SettingsView: View {
                     }
                     downloadProgress = 1
                     downloadStatus =
-                        WhisperKitModelStore.isModelPrepared(model)
+                        isVerified
                         ? "\(model) is downloaded and ready."
-                        : "\(model) download incomplete. Please retry."
+                        : "\(model) failed integrity verification. Please retry."
                     isDownloadingModel = false
                     downloadingModelName = nil
                     downloadTask = nil
