@@ -109,7 +109,7 @@ enum WhisperKitModelStore {
             try fileManager.removeItem(at: tokenizerFolder)
         }
 
-        try? fileManager.removeItem(at: verificationMarkerURL(for: model))
+        VerificationMarkerStore.removeMarker(for: model, downloadBaseURL: downloadBaseURL)
         inMemoryVerificationCache[model] = false
     }
 
@@ -188,7 +188,13 @@ enum WhisperKitModelStore {
             return true
         }
 
-        if hasValidMarker(for: model, modelFolder: modelFolder, manifest: manifest) {
+        if VerificationMarkerStore.hasValidMarker(
+            for: model,
+            modelFolder: modelFolder,
+            manifest: manifest,
+            manifestRevision: manifestRevision,
+            downloadBaseURL: downloadBaseURL
+        ) {
             return true
         }
 
@@ -200,10 +206,10 @@ enum WhisperKitModelStore {
             return true
         }
 
-        var fingerprints: [String: FileFingerprint] = [:]
+        var fingerprints: [String: VerificationMarkerStore.FileFingerprint] = [:]
         for (relativePath, expectedHash) in manifest {
             let fileURL = modelFolder.appendingPathComponent(relativePath)
-            guard let fingerprint = currentFingerprint(for: fileURL),
+            guard let fingerprint = VerificationMarkerStore.currentFingerprint(for: fileURL),
                   let actualHash = sha256(for: fileURL),
                   actualHash == expectedHash else {
                 return false
@@ -211,12 +217,11 @@ enum WhisperKitModelStore {
             fingerprints[relativePath] = fingerprint
         }
 
-        writeMarker(
-            VerificationMarker(
-                manifestRevision: manifestRevision,
-                fingerprints: fingerprints
-            ),
-            for: model
+        VerificationMarkerStore.writeMarker(
+            for: model,
+            manifestRevision: manifestRevision,
+            fingerprints: fingerprints,
+            downloadBaseURL: downloadBaseURL
         )
         return true
     }
@@ -233,70 +238,6 @@ enum WhisperKitModelStore {
         }
 
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
-    }
-
-    private static func hasValidMarker(
-        for model: String,
-        modelFolder: URL,
-        manifest: [String: String]
-    ) -> Bool {
-        let markerURL = verificationMarkerURL(for: model)
-        guard let data = try? Data(contentsOf: markerURL),
-              let marker = try? JSONDecoder().decode(VerificationMarker.self, from: data),
-              marker.manifestRevision == manifestRevision else {
-            return false
-        }
-
-        for relativePath in manifest.keys {
-            guard let expected = marker.fingerprints[relativePath],
-                  let current = currentFingerprint(for: modelFolder.appendingPathComponent(relativePath)),
-                  current == expected else {
-                return false
-            }
-        }
-
-        return true
-    }
-
-    private static func writeMarker(_ marker: VerificationMarker, for model: String) {
-        let markerURL = verificationMarkerURL(for: model)
-        let markerDir = markerURL.deletingLastPathComponent()
-        do {
-            try FileManager.default.createDirectory(at: markerDir, withIntermediateDirectories: true)
-            let data = try JSONEncoder().encode(marker)
-            try data.write(to: markerURL, options: .atomic)
-        } catch {
-            // Marker write failures should not block model usage.
-        }
-    }
-
-    private static func verificationMarkerURL(for model: String) -> URL {
-        downloadBaseURL
-            .appendingPathComponent("verification", isDirectory: true)
-            .appendingPathComponent("\(model).json")
-    }
-
-    private static func currentFingerprint(for fileURL: URL) -> FileFingerprint? {
-        guard let attrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
-              let size = attrs[.size] as? NSNumber,
-              let modified = attrs[.modificationDate] as? Date else {
-            return nil
-        }
-
-        return FileFingerprint(
-            size: size.int64Value,
-            modifiedAt: modified.timeIntervalSince1970
-        )
-    }
-
-    private struct VerificationMarker: Codable {
-        let manifestRevision: String
-        let fingerprints: [String: FileFingerprint]
-    }
-
-    private struct FileFingerprint: Codable, Equatable {
-        let size: Int64
-        let modifiedAt: TimeInterval
     }
 
     private static let expectedHashesByModel: [String: [String: String]] = [
