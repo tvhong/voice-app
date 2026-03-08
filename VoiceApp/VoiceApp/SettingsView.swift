@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var downloadError = ""
     @State private var downloadTask: Task<Void, Never>?
     @State private var activeDownloadID: UUID?
+    @State private var modelPendingDeletion: String?
 
     var body: some View {
         Form {
@@ -56,6 +57,26 @@ struct SettingsView: View {
         .onDisappear {
             cancelDownload()
         }
+        .confirmationDialog(
+            "Delete downloaded model?",
+            isPresented: Binding(
+                get: { modelPendingDeletion != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        modelPendingDeletion = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible,
+            presenting: modelPendingDeletion
+        ) { model in
+            Button("Delete \(model)", role: .destructive) {
+                deleteModel(model)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { model in
+            Text("This will remove local files for \(model) to free disk space.")
+        }
     }
 
     @ViewBuilder
@@ -76,8 +97,18 @@ struct SettingsView: View {
             Spacer()
 
             if isPrepared {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Button {
+                        modelPendingDeletion = model
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.red)
+                    .disabled(isDownloadingModel)
+                }
             } else if isDownloadingThisModel {
                 HStack(spacing: 8) {
                     ProgressView(value: downloadProgress)
@@ -183,5 +214,18 @@ struct SettingsView: View {
         downloadingModelName = nil
         activeDownloadID = nil
         downloadStatus = "Download canceled."
+    }
+
+    private func deleteModel(_ model: String) {
+        do {
+            try WhisperKitModelStore.deleteModel(model)
+            downloadError = ""
+            downloadStatus = "\(model) deleted."
+            modelPendingDeletion = nil
+        } catch {
+            downloadStatus = ""
+            downloadError = "Delete failed: \(error.localizedDescription)"
+            modelPendingDeletion = nil
+        }
     }
 }

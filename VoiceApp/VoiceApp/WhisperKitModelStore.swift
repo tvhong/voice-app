@@ -56,6 +56,28 @@ enum WhisperKitModelStore {
         estimatedDownloadSizes[model] ?? "Unknown"
     }
 
+    static func deleteModel(_ model: String) throws {
+        let fileManager = FileManager.default
+        let modelSuffix = "whisper-\(model)"
+        let modelsRoot = downloadBaseURL.appendingPathComponent("models", isDirectory: true)
+
+        if let modelFolder = resolveModelFolder(
+            fileManager: fileManager,
+            modelsRoot: modelsRoot,
+            modelSuffix: modelSuffix
+        ), fileManager.fileExists(atPath: modelFolder.path) {
+            try fileManager.removeItem(at: modelFolder)
+        }
+
+        let tokenizerFolder = modelsRoot
+            .appendingPathComponent("openai", isDirectory: true)
+            .appendingPathComponent(modelSuffix, isDirectory: true)
+
+        if fileManager.fileExists(atPath: tokenizerFolder.path) {
+            try fileManager.removeItem(at: tokenizerFolder)
+        }
+    }
+
     private static func resolveModelFolder(
         fileManager: FileManager,
         modelsRoot: URL,
