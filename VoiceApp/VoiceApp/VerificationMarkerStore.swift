@@ -9,16 +9,34 @@ struct VerificationMarkerStore {
         downloadBaseURL: URL
     ) -> Bool {
         let markerURL = markerURL(for: model, downloadBaseURL: downloadBaseURL)
-        guard let data = try? Data(contentsOf: markerURL),
-              let marker = try? JSONDecoder().decode(VerificationMarker.self, from: data),
-              marker.manifestRevision == manifestRevision else {
+        print("[Marker] Checking marker at \(markerURL.path)")
+
+        guard let data = try? Data(contentsOf: markerURL) else {
+            print("[Marker] No marker file found")
+            return false
+        }
+
+        guard let marker = try? JSONDecoder().decode(VerificationMarker.self, from: data) else {
+            print("[Marker] Failed to decode marker JSON")
+            return false
+        }
+
+        guard marker.manifestRevision == manifestRevision else {
+            print("[Marker] Revision mismatch — marker: '\(marker.manifestRevision)', expected: '\(manifestRevision)'")
             return false
         }
 
         for relativePath in manifest.keys {
-            guard let expected = marker.fingerprints[relativePath],
-                  let current = currentFingerprint(for: modelFolder.appendingPathComponent(relativePath)),
-                  current == expected else {
+            guard let expected = marker.fingerprints[relativePath] else {
+                print("[Marker] No fingerprint in marker for '\(relativePath)'")
+                return false
+            }
+            guard let current = currentFingerprint(for: modelFolder.appendingPathComponent(relativePath)) else {
+                print("[Marker] Could not read current fingerprint for '\(relativePath)'")
+                return false
+            }
+            guard current == expected else {
+                print("[Marker] Fingerprint changed for '\(relativePath)' — size: \(current.size) vs \(expected.size), modifiedAt: \(current.modifiedAt) vs \(expected.modifiedAt)")
                 return false
             }
         }
@@ -41,7 +59,7 @@ struct VerificationMarkerStore {
             let data = try JSONEncoder().encode(marker)
             try data.write(to: markerURL, options: .atomic)
         } catch {
-            // Marker write failures should not block model usage.
+            print("[Marker] Failed to write marker: \(error)")
         }
     }
 
