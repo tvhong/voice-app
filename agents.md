@@ -4,37 +4,51 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Run
 
-Open `VoiceApp/VoiceApp.xcodeproj` in Xcode and press **Cmd+R**. There is no CLI build system — all building, testing, and running is done through Xcode.
+Open `VoiceApp/VoiceApp.xcodeproj` in Xcode and press **Cmd+R** to run.
+
+To verify a build from the CLI:
+```
+cd VoiceApp && xcodebuild -project VoiceApp.xcodeproj -scheme VoiceApp -configuration Debug build
+```
 
 ## Prerequisites
 
 - Xcode 15+, macOS 13+
-- Whisper model at `~/Library/Application Support/VoiceApp/ggml-base.en.bin` (see README for download command)
+- WhisperKit models are downloaded automatically on first use via the Settings tab. No manual model setup required.
 
 ## Architecture
 
-macOS menu bar app using SwiftUI + AppKit. Entry point is `VoiceAppApp.swift` which delegates to `AppDelegate`.
+macOS app with two surfaces: a menu bar popover and a standard window (History + Settings tabs). Both share a single `RecordingController` owned by `AppDelegate`.
 
 ```
 VoiceAppApp (@main)
-└── AppDelegate (NSApplicationDelegateAdaptor)
-    ├── NSStatusItem + NSPopover → RecorderView (SwiftUI)
-    └── HotkeyManager — global Fn key monitor (requires Accessibility permission)
+├── AppDelegate (NSApplicationDelegateAdaptor)
+│   ├── NSStatusItem + NSPopover → RecorderView (SwiftUI popover)
+│   ├── FloatingMicView (overlay circle shown during recording)
+│   └── HotkeyManager — global Fn key monitor (requires Accessibility permission)
+└── Window scene → TabView
+    ├── HistoryView — shows TranscriptionHistory.records
+    └── SettingsView — model selection, download, delete
 
 RecordingController (@Observable)  ← shared by AppDelegate + RecorderView
 ├── AudioRecorder — AVAudioEngine tap → AVAudioConverter → 16kHz mono Float32
-└── TranscriptionService — SwiftWhisper → NSPasteboard
+├── TranscriptionService — WhisperKit → NSPasteboard (auto-pastes via CGEvent Cmd+V)
+└── TranscriptionHistory — in-memory list of TranscriptionRecord (not persisted)
 ```
 
 **State machine** (`AppState` enum in `RecordingController`): `idle → recording → transcribing → done(text) | error(message)`
 
 **Key files:**
-- `RecordingController.swift` — central coordinator, owns `AppState`
+- `RecordingController.swift` — central coordinator, owns `AppState` and `TranscriptionHistory`
 - `AudioRecorder.swift` — audio capture and downsampling to Whisper's required format
-- `TranscriptionService.swift` — loads model from `~/Library/Application Support/VoiceApp/` or bundle, runs Whisper, writes to clipboard
+- `TranscriptionService.swift` — lazy-loads WhisperKit (reloads if model changes), trims silence, writes to clipboard
 - `HotkeyManager.swift` — global + local `NSEvent` monitors for Fn key press/release
-- `ModelConfig.swift` — single source of truth for model file path
+- `ModelConfig.swift` — single source of truth for model selection (`UserDefaults`)
+- `WhisperKitModelStore.swift` — model prep check, download, verify, delete; cache at `~/Library/Application Support/VoiceApp/WhisperKitModels/`
+- `ModelIntegrityVerifier.swift` — SHA-256 verification against embedded manifest hashes
+- `VerificationMarkerStore.swift` — persists verification results to skip re-hashing on subsequent launches
+- `ModelFilesystem.swift` — filesystem helpers for locating WhisperKit model folders
 
-**Dependency:** [SwiftWhisper](https://github.com/exPHAT/SwiftWhisper) via Swift Package Manager (wraps whisper.cpp).
+**Dependency:** [WhisperKit](https://github.com/argmaxinc/WhisperKit) via Swift Package Manager (Apple MLCompute/CoreML-based Whisper inference).
 
-**Required permissions** (declared in `Info.plist`): Microphone (`NSMicrophoneUsageDescription`), Accessibility (`NSAccessibilityUsageDescription` — needed for the global Fn hotkey).
+**Required permissions** (declared in `Info.plist`): Microphone (`NSMicrophoneUsageDescription`), Accessibility (`NSAccessibilityUsageDescription` — needed for the global Fn hotkey and `CGEvent` paste simulation).
