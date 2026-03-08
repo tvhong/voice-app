@@ -8,7 +8,12 @@ class TranscriptionService {
     func transcribe(audioFrames: [Float]) async throws -> String {
         let modelURL = try ModelConfig.resolveModelURL()
         if whisper == nil || loadedModelURL != modelURL {
-            whisper = Whisper(fromFileURL: modelURL)
+            let params = WhisperParams(strategy: .greedy)
+            params.single_segment = true
+            params.print_progress = false
+            params.print_timestamps = false
+            params.n_threads = Int32(min(8, ProcessInfo.processInfo.processorCount))
+            whisper = Whisper(fromFileURL: modelURL, withParams: params)
             loadedModelURL = modelURL
         }
         let segments = try await whisper!.transcribe(audioFrames: audioFrames)
