@@ -31,9 +31,11 @@ struct SettingsView: View {
                 Text("Models are downloaded automatically by WhisperKit on first use.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text("Estimated download size: \(WhisperKitModelStore.estimatedDownloadSize(for: selectedModelName))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Text(
+                    "Estimated download size: \(WhisperKitModelStore.estimatedDownloadSize(for: selectedModelName))"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
                 Text("Cache location: \(WhisperKitModelStore.downloadBaseURL.path)")
                     .font(.caption)
@@ -114,9 +116,6 @@ struct SettingsView: View {
 
             if isPrepared {
                 HStack(spacing: 8) {
-                    Text("Downloaded")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                     Button {
                         modelPendingDeletion = model
                     } label: {
@@ -174,7 +173,9 @@ struct SettingsView: View {
                     Task { @MainActor in
                         guard activeDownloadID == downloadID else { return }
                         if progress.totalUnitCount > 0 {
-                            downloadProgress = Double(progress.completedUnitCount) / Double(progress.totalUnitCount)
+                            downloadProgress =
+                                Double(progress.completedUnitCount)
+                                / Double(progress.totalUnitCount)
                         }
                         let percent = Int(downloadProgress * 100)
                         downloadStatus = "Downloading \(model)... \(percent)%"
@@ -193,7 +194,8 @@ struct SettingsView: View {
                         return
                     }
                     downloadProgress = 1
-                    downloadStatus = WhisperKitModelStore.isModelPrepared(model)
+                    downloadStatus =
+                        WhisperKitModelStore.isModelPrepared(model)
                         ? "\(model) is downloaded and ready."
                         : "\(model) download incomplete. Please retry."
                     isDownloadingModel = false
