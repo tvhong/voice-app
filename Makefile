@@ -1,4 +1,4 @@
-ICON ?= icon.png
+ICON ?= icon.svg
 
 .PHONY: icon
 icon:
