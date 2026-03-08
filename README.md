@@ -48,4 +48,5 @@ Open **VoiceApp → Settings** (Cmd+,) to choose the WhisperKit model; it will d
 - [x] Model verification - broken atm
 - [x] Updating the UI so that it's not a top bar anymore
 - [ ] Allow custom dictionary (and post processing?)
+- [ ] Support customising the keyboard shortcuts
 - [x] Add an icon
