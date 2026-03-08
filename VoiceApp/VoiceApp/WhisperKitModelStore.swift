@@ -41,17 +41,22 @@ enum WhisperKitModelStore {
         let modelSuffix = "whisper-\(model)"
         let modelsRoot = downloadBaseURL.appendingPathComponent("models", isDirectory: true)
 
-        guard let modelFolder = resolveModelFolder(
+        guard let modelFolder = ModelFilesystem.resolveModelFolder(
             fileManager: fileManager,
             modelsRoot: modelsRoot,
             modelSuffix: modelSuffix
         ) else { return false }
 
-        guard hasRequiredModelFiles(fileManager: fileManager, modelFolder: modelFolder)
-            && hasValidTokenizerFilesIfPresent(
+        guard ModelFilesystem.hasRequiredModelFiles(
+            fileManager: fileManager,
+            modelFolder: modelFolder,
+            requiredModelFiles: requiredModelFiles
+        )
+            && ModelFilesystem.hasValidTokenizerFilesIfPresent(
                 fileManager: fileManager,
                 modelsRoot: modelsRoot,
-                modelSuffix: modelSuffix
+                modelSuffix: modelSuffix,
+                requiredTokenizerFiles: requiredTokenizerFiles
             ) else {
             return false
         }
@@ -74,7 +79,7 @@ enum WhisperKitModelStore {
         let modelSuffix = "whisper-\(model)"
         let modelsRoot = downloadBaseURL.appendingPathComponent("models", isDirectory: true)
 
-        guard let modelFolder = resolveModelFolder(
+        guard let modelFolder = ModelFilesystem.resolveModelFolder(
             fileManager: fileManager,
             modelsRoot: modelsRoot,
             modelSuffix: modelSuffix
@@ -93,7 +98,7 @@ enum WhisperKitModelStore {
         let modelSuffix = "whisper-\(model)"
         let modelsRoot = downloadBaseURL.appendingPathComponent("models", isDirectory: true)
 
-        if let modelFolder = resolveModelFolder(
+        if let modelFolder = ModelFilesystem.resolveModelFolder(
             fileManager: fileManager,
             modelsRoot: modelsRoot,
             modelSuffix: modelSuffix
@@ -111,76 +116,6 @@ enum WhisperKitModelStore {
 
         VerificationMarkerStore.removeMarker(for: model, downloadBaseURL: downloadBaseURL)
         inMemoryVerificationCache[model] = false
-    }
-
-    private static func resolveModelFolder(
-        fileManager: FileManager,
-        modelsRoot: URL,
-        modelSuffix: String
-    ) -> URL? {
-        guard let enumerator = fileManager.enumerator(
-            at: modelsRoot,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        ) else {
-            return nil
-        }
-
-        for case let url as URL in enumerator {
-            guard isDirectory(url) else { continue }
-            if url.lastPathComponent.hasSuffix(modelSuffix) {
-                return url
-            }
-        }
-
-        return nil
-    }
-
-    private static func hasRequiredModelFiles(fileManager: FileManager, modelFolder: URL) -> Bool {
-        hasAllFiles(
-            fileManager: fileManager,
-            root: modelFolder,
-            relativePaths: requiredModelFiles
-        )
-    }
-
-    private static func hasValidTokenizerFilesIfPresent(
-        fileManager: FileManager,
-        modelsRoot: URL,
-        modelSuffix: String
-    ) -> Bool {
-        let tokenizerFolder = modelsRoot
-            .appendingPathComponent("openai", isDirectory: true)
-            .appendingPathComponent(modelSuffix, isDirectory: true)
-
-        // Newer WhisperKit layouts may not place tokenizer files in this cache path.
-        // If the tokenizer folder is absent, treat the model as prepared.
-        guard fileManager.fileExists(atPath: tokenizerFolder.path) else {
-            return true
-        }
-
-        return hasAllFiles(
-            fileManager: fileManager,
-            root: tokenizerFolder,
-            relativePaths: requiredTokenizerFiles
-        )
-    }
-
-    private static func hasAllFiles(
-        fileManager: FileManager,
-        root: URL,
-        relativePaths: [String]
-    ) -> Bool {
-        for relativePath in relativePaths {
-            if !fileManager.fileExists(atPath: root.appendingPathComponent(relativePath).path) {
-                return false
-            }
-        }
-        return true
-    }
-
-    private static func isDirectory(_ url: URL) -> Bool {
-        (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
     }
 
     private static func verifyIntegrityIfNeeded(model: String, modelFolder: URL) -> Bool {
