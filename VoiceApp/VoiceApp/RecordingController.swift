@@ -1,5 +1,8 @@
 import AVFoundation
+import OSLog
 import Observation
+
+private let logger = Logger(subsystem: "com.voiceapp", category: "recording")
 
 enum AppState: Equatable {
     case idle
@@ -32,10 +35,13 @@ class RecordingController {
 
     func stopAndTranscribe() async {
         guard state == .recording else { return }
+        let stopTime = Date()
         let frames = recorder.stopRecording()
         state = .transcribing
         do {
             let text = try await transcriber.transcribe(audioFrames: frames)
+            let totalTime = Date().timeIntervalSince(stopTime)
+            logger.info("total latency (stop → pasted): \(String(format: "%.2f", totalTime))s")
             history.add(text)
             state = .done(text: text)
         } catch {

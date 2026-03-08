@@ -1,5 +1,8 @@
 import AppKit
+import OSLog
 import SwiftWhisper
+
+private let logger = Logger(subsystem: "com.voiceapp", category: "transcription")
 
 class TranscriptionService {
     private var whisper: Whisper?
@@ -16,7 +19,19 @@ class TranscriptionService {
             whisper = Whisper(fromFileURL: modelURL, withParams: params)
             loadedModelURL = modelURL
         }
-        let segments = try await whisper!.transcribe(audioFrames: trimSilence(audioFrames))
+
+        let rawDuration = Double(audioFrames.count) / 16000
+        let trimmed = trimSilence(audioFrames)
+        let trimmedDuration = Double(trimmed.count) / 16000
+        let trimmedFrames = audioFrames.count - trimmed.count
+        logger.info("audio: \(String(format: "%.2f", rawDuration))s → trimmed to \(String(format: "%.2f", trimmedDuration))s (\(trimmedFrames) frames removed)")
+
+        let inferenceStart = Date()
+        let segments = try await whisper!.transcribe(audioFrames: trimmed)
+        let inferenceTime = Date().timeIntervalSince(inferenceStart)
+        let rtf = trimmedDuration > 0 ? inferenceTime / trimmedDuration : 0
+        logger.info("inference: \(String(format: "%.2f", inferenceTime))s | RTF: \(String(format: "%.2f", rtf))x | model: \(modelURL.lastPathComponent)")
+
         let text = segments.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespaces)
 
         await MainActor.run {
