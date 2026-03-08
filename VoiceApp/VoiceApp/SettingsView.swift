@@ -4,29 +4,23 @@ import WhisperKit
 struct SettingsView: View {
     @AppStorage(ModelConfig.selectedModelNameKey) private var selectedModelName: String = "base"
     @State private var isDownloadingModel = false
+    @State private var downloadingModelName: String?
     @State private var downloadProgress: Double = 0
     @State private var downloadStatus = ""
     @State private var downloadError = ""
     @State private var downloadTask: Task<Void, Never>?
     @State private var activeDownloadID: UUID?
 
-    private var isPrepared: Bool {
-        WhisperKitModelStore.isModelPrepared(selectedModelName)
-    }
-
     var body: some View {
         Form {
             Section("WhisperKit") {
-                Picker("Model", selection: $selectedModelName) {
+                VStack(spacing: 8) {
                     ForEach(ModelConfig.availableModelNames, id: \.self) { model in
-                        Text(model).tag(model)
+                        modelRow(for: model)
                     }
                 }
 
                 Text("Models are downloaded automatically by WhisperKit on first use.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("To avoid a slow first transcription, download the selected model now.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text("Estimated download size: \(WhisperKitModelStore.estimatedDownloadSize(for: selectedModelName))")
@@ -37,31 +31,6 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
-
-                HStack {
-                    Text("Selected model status")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(isPrepared ? "Ready" : "Not downloaded")
-                        .foregroundStyle(isPrepared ? .green : .secondary)
-                }
-
-                HStack(spacing: 8) {
-                    Button(isDownloadingModel ? "Downloading..." : "Download Selected Model") {
-                        startDownload()
-                    }
-                    .disabled(isDownloadingModel)
-
-                    if isDownloadingModel {
-                        Button("Cancel") {
-                            cancelDownload()
-                        }
-                        .foregroundStyle(.red)
-
-                        ProgressView(value: downloadProgress)
-                            .frame(width: 140)
-                    }
-                }
 
                 if !downloadStatus.isEmpty {
                     Text(downloadStatus)
@@ -78,24 +47,73 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .onChange(of: selectedModelName) {
-            downloadStatus = ""
-            downloadError = ""
-            downloadProgress = 0
+            if !isDownloadingModel {
+                downloadStatus = ""
+                downloadError = ""
+                downloadProgress = 0
+            }
         }
         .onDisappear {
             cancelDownload()
         }
     }
 
-    private func startDownload() {
+    @ViewBuilder
+    private func modelRow(for model: String) -> some View {
+        let isSelected = model == selectedModelName
+        let isPrepared = WhisperKitModelStore.isModelPrepared(model)
+        let isDownloadingThisModel = isDownloadingModel && downloadingModelName == model
+
+        HStack(spacing: 12) {
+            Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
+                .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(model)
+                Text(WhisperKitModelStore.estimatedDownloadSize(for: model))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+
+            if isPrepared {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            } else if isDownloadingThisModel {
+                HStack(spacing: 8) {
+                    ProgressView(value: downloadProgress)
+                        .frame(width: 90)
+                    Text("\(Int(downloadProgress * 100))%")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button("Cancel") {
+                        cancelDownload()
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.red)
+                }
+            } else {
+                Button("Download") {
+                    startDownload(for: model)
+                }
+                .disabled(isDownloadingModel)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedModelName = model
+        }
+    }
+
+    private func startDownload(for model: String) {
         guard !isDownloadingModel else { return }
 
+        selectedModelName = model
         isDownloadingModel = true
+        downloadingModelName = model
         downloadProgress = 0
         downloadError = ""
-        downloadStatus = "Starting download for \(selectedModelName)..."
+        downloadStatus = "Starting download for \(model)..."
 
-        let model = selectedModelName
         let downloadID = UUID()
         activeDownloadID = downloadID
         downloadTask = Task {
@@ -120,6 +138,7 @@ struct SettingsView: View {
                         downloadStatus = "Download canceled."
                         downloadError = ""
                         isDownloadingModel = false
+                        downloadingModelName = nil
                         downloadTask = nil
                         activeDownloadID = nil
                         return
@@ -129,6 +148,7 @@ struct SettingsView: View {
                         ? "\(model) is downloaded and ready."
                         : "\(model) download incomplete. Please retry."
                     isDownloadingModel = false
+                    downloadingModelName = nil
                     downloadTask = nil
                     activeDownloadID = nil
                 }
@@ -138,6 +158,7 @@ struct SettingsView: View {
                     downloadStatus = "Download canceled."
                     downloadError = ""
                     isDownloadingModel = false
+                    downloadingModelName = nil
                     downloadTask = nil
                     activeDownloadID = nil
                 }
@@ -147,6 +168,7 @@ struct SettingsView: View {
                     downloadError = "Download failed: \(error.localizedDescription)"
                     downloadStatus = ""
                     isDownloadingModel = false
+                    downloadingModelName = nil
                     downloadTask = nil
                     activeDownloadID = nil
                 }
@@ -158,6 +180,7 @@ struct SettingsView: View {
         downloadTask?.cancel()
         downloadTask = nil
         isDownloadingModel = false
+        downloadingModelName = nil
         activeDownloadID = nil
         downloadStatus = "Download canceled."
     }

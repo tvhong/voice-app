@@ -40,5 +40,8 @@ Open **VoiceApp → Settings** (Cmd+,) to choose the WhisperKit model; it will d
 
 ## TODOs:
 
-- [ ] Make it faster
+- [x] Make it faster
+- [ ] Improve the settings UI:
+  - [ ] List of items
+  - [ ] Allow deleting downloaded models to save disk space
 - [ ] Allow custom dictionary (and post processing?)
