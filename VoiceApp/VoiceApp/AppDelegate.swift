@@ -12,7 +12,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupFloatingPanel()
         requestAccessibilityIfNeeded()
+        setupHotkey()
+    }
 
+    private func setupHotkey() {
         hotkeyManager = HotkeyManager(
             onPress: { [weak self] in
                 Task { await self?.controller.startRecording() }
@@ -28,9 +31,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupFloatingPanel() {
-        let view = FloatingMicView(controller: controller, onSettingsOpen: { [weak self] in
-            self?.openSettings()
-        })
+        let view = FloatingMicView(
+            controller: controller,
+            onSettingsOpen: { [weak self] in
+                self?.openSettings()
+            })
 
         let panelSize = NSSize(width: 56, height: 56)
         floatingPanel = NSPanel(
@@ -78,16 +83,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func requestAccessibilityIfNeeded() {
-        let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true] as CFDictionary
+        let options =
+            [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true] as CFDictionary
         AXIsProcessTrustedWithOptions(options)
     }
 
     private func simulatePaste() {
         let src = CGEventSource(stateID: .hidSystemState)
         let down = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: true)
-        let up   = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: false)
+        let up = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: false)
         down?.flags = .maskCommand
-        up?.flags   = .maskCommand
+        up?.flags = .maskCommand
         down?.post(tap: .cgAnnotatedSessionEventTap)
         up?.post(tap: .cgAnnotatedSessionEventTap)
     }
