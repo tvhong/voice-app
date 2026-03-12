@@ -1,5 +1,4 @@
 import AppKit
-import ApplicationServices
 import CoreGraphics
 import SwiftUI
 
@@ -103,10 +102,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Same app — try AX direct insert first (no clipboard involved)
-        if insertTextViaAccessibility(text) { return }
-
-        // Fallback: clipboard + paste, then restore previous clipboard contents
+        // Same app — paste and restore previous clipboard contents
         pasteRestoringClipboard(text)
     }
 
@@ -140,20 +136,4 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @discardableResult
-    private func insertTextViaAccessibility(_ text: String) -> Bool {
-        let systemWide = AXUIElementCreateSystemWide()
-        var focusedElement: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedElement) == .success else {
-            return false
-        }
-        guard let focusedElement else { return false }
-        let element = focusedElement as! AXUIElement
-        let result = AXUIElementSetAttributeValue(
-            element,
-            kAXSelectedTextAttribute as CFString,
-            text as CFTypeRef
-        )
-        return result == .success
-    }
 }
