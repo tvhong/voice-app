@@ -103,7 +103,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Same app — paste directly and restore the previous clipboard
+        // Same app — try AX direct insert first (no clipboard involved)
+        if insertTextViaAccessibility(text) { return }
+
+        // Fallback: clipboard + paste, then restore previous clipboard contents
         let savedItems: [NSPasteboardItem] = NSPasteboard.general.pasteboardItems?.map { item in
             let copy = NSPasteboardItem()
             for type in item.types {
@@ -131,5 +134,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NSPasteboard.general.writeObjects(savedItems)
             }
         }
+    }
+
+    @discardableResult
+    private func insertTextViaAccessibility(_ text: String) -> Bool {
+        let systemWide = AXUIElementCreateSystemWide()
+        var focusedElement: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedElement) == .success else {
+            return false
+        }
+        let result = AXUIElementSetAttributeValue(
+            focusedElement as! AXUIElement,
+            kAXSelectedTextAttribute as CFString,
+            text as CFTypeRef
+        )
+        return result == .success
     }
 }
