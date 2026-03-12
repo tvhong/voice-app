@@ -24,8 +24,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onRelease: { [weak self] in
                 Task {
-                    await self?.controller.stopAndTranscribe()
-                    self?.pasteIfSameApp()
+                    guard let self else { return }
+                    await self.controller.stopAndTranscribe()
+                    if case .done(let text) = self.controller.state {
+                        self.handleTranscriptionOutput(text)
+                    }
                 }
             }
         )
@@ -90,13 +93,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         AXIsProcessTrustedWithOptions(options)
     }
 
-    private func pasteIfSameApp() {
+    private func handleTranscriptionOutput(_ text: String) {
         let currentApp = NSWorkspace.shared.frontmostApplication
         guard let startApp = recordingStartApp,
               currentApp?.bundleIdentifier == startApp.bundleIdentifier else {
-            // User switched apps — text is already in clipboard
+            // User switched apps — copy to clipboard only
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(text, forType: .string)
             return
         }
+
+        // Same app — paste directly and restore the previous clipboard
+        let savedItems: [NSPasteboardItem] = NSPasteboard.general.pasteboardItems?.map { item in
+            let copy = NSPasteboardItem()
+            for type in item.types {
+                if let data = item.data(forType: type) {
+                    copy.setData(data, forType: type)
+                }
+            }
+            return copy
+        } ?? []
+
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+
         let src = CGEventSource(stateID: .hidSystemState)
         let down = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: true)
         let up = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: false)
@@ -104,5 +124,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         up?.flags = .maskCommand
         down?.post(tap: .cgAnnotatedSessionEventTap)
         up?.post(tap: .cgAnnotatedSessionEventTap)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            NSPasteboard.general.clearContents()
+            if !savedItems.isEmpty {
+                NSPasteboard.general.writeObjects(savedItems)
+            }
+        }
     }
 }

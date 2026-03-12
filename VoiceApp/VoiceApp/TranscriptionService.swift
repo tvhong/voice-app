@@ -1,4 +1,3 @@
-import AppKit
 import OSLog
 import WhisperKit
 
@@ -37,11 +36,6 @@ class TranscriptionService {
             .map(\.text)
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        await MainActor.run {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(text, forType: .string)
-        }
 
         return text
     }
