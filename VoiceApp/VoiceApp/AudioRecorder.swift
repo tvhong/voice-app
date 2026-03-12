@@ -9,6 +9,7 @@ import AVFoundation
         capturedSamples = []
 
         let inputNode = engine.inputNode
+        inputNode.removeTap(onBus: 0)   // no-op if no tap; prevents crash on rapid re-trigger
         let nativeFormat = inputNode.outputFormat(forBus: 0)
 
         guard let conv = AVAudioConverter(from: nativeFormat, to: whisperFormat) else {

@@ -102,37 +102,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // Same app — paste and restore previous clipboard contents
-        pasteRestoringClipboard(text)
+        // Same app — type directly via keyboard events (no clipboard involved)
+        typeText(text)
     }
 
-    private func pasteRestoringClipboard(_ text: String) {
-        let savedItems: [NSPasteboardItem] = NSPasteboard.general.pasteboardItems?.map { item in
-            let copy = NSPasteboardItem()
-            for type in item.types {
-                if let data = item.data(forType: type) {
-                    copy.setData(data, forType: type)
-                }
-            }
-            return copy
-        } ?? []
-
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
-
+    private func typeText(_ text: String) {
         let src = CGEventSource(stateID: .hidSystemState)
-        let down = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: true)
-        let up = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: false)
-        down?.flags = .maskCommand
-        up?.flags = .maskCommand
-        down?.post(tap: .cgAnnotatedSessionEventTap)
-        up?.post(tap: .cgAnnotatedSessionEventTap)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            NSPasteboard.general.clearContents()
-            if !savedItems.isEmpty {
-                NSPasteboard.general.writeObjects(savedItems)
-            }
+        for scalar in text.unicodeScalars {
+            var chars = [UniChar](scalar.utf16)
+            let keyDown = CGEvent(keyboardEventSource: src, virtualKey: 0, keyDown: true)
+            let keyUp = CGEvent(keyboardEventSource: src, virtualKey: 0, keyDown: false)
+            keyDown?.keyboardSetUnicodeString(stringLength: chars.count, unicodeString: &chars)
+            keyUp?.keyboardSetUnicodeString(stringLength: chars.count, unicodeString: &chars)
+            keyDown?.post(tap: .cgAnnotatedSessionEventTap)
+            keyUp?.post(tap: .cgAnnotatedSessionEventTap)
         }
     }
 
