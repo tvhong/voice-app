@@ -7,6 +7,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var floatingPanel: NSPanel!
     private var settingsWindow: NSWindow?
     private var hotkeyManager: HotkeyManager!
+    private var recordingStartApp: NSRunningApplication?
     let controller = RecordingController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -18,12 +19,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupHotkey() {
         hotkeyManager = HotkeyManager(
             onPress: { [weak self] in
+                self?.recordingStartApp = NSWorkspace.shared.frontmostApplication
                 Task { await self?.controller.startRecording() }
             },
             onRelease: { [weak self] in
                 Task {
                     await self?.controller.stopAndTranscribe()
-                    self?.simulatePaste()
+                    self?.pasteIfSameApp()
                 }
             }
         )
@@ -88,7 +90,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         AXIsProcessTrustedWithOptions(options)
     }
 
-    private func simulatePaste() {
+    private func pasteIfSameApp() {
+        let currentApp = NSWorkspace.shared.frontmostApplication
+        guard let startApp = recordingStartApp,
+              currentApp?.bundleIdentifier == startApp.bundleIdentifier else {
+            // User switched apps — text is already in clipboard
+            return
+        }
         let src = CGEventSource(stateID: .hidSystemState)
         let down = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: true)
         let up = CGEvent(keyboardEventSource: src, virtualKey: 0x09, keyDown: false)
