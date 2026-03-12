@@ -147,8 +147,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedElement) == .success else {
             return false
         }
+        guard let element = focusedElement as? AXUIElement else { return false }
         let result = AXUIElementSetAttributeValue(
-            focusedElement as! AXUIElement,
+            element,
             kAXSelectedTextAttribute as CFString,
             text as CFTypeRef
         )
