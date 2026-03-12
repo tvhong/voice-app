@@ -107,6 +107,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if insertTextViaAccessibility(text) { return }
 
         // Fallback: clipboard + paste, then restore previous clipboard contents
+        pasteRestoringClipboard(text)
+    }
+
+    private func pasteRestoringClipboard(_ text: String) {
         let savedItems: [NSPasteboardItem] = NSPasteboard.general.pasteboardItems?.map { item in
             let copy = NSPasteboardItem()
             for type in item.types {
