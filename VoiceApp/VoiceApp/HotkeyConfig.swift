@@ -31,7 +31,7 @@ enum HotkeyConfig {
     static var mode: HotkeyMode {
         get {
             let raw = UserDefaults.standard.string(forKey: modeKey)
-            return raw.flatMap(HotkeyMode.init(rawValue:)) ?? .hold
+            return raw.flatMap(HotkeyMode.init(rawValue:)) ?? .toggle
         }
         set {
             UserDefaults.standard.set(newValue.rawValue, forKey: modeKey)
@@ -41,7 +41,7 @@ enum HotkeyConfig {
     static var key: HotkeyKey {
         get {
             let raw = UserDefaults.standard.string(forKey: keyKey)
-            return raw.flatMap(HotkeyKey.init(rawValue:)) ?? .fn
+            return raw.flatMap(HotkeyKey.init(rawValue:)) ?? .commandD
         }
         set {
             UserDefaults.standard.set(newValue.rawValue, forKey: keyKey)

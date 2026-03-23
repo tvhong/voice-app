@@ -2,8 +2,8 @@ import SwiftUI
 import WhisperKit
 
 struct SettingsView: View {
-    @AppStorage(HotkeyConfig.keyKey) private var hotkeyKey: String = HotkeyKey.fn.rawValue
-    @AppStorage(HotkeyConfig.modeKey) private var hotkeyMode: String = HotkeyMode.hold.rawValue
+    @AppStorage(HotkeyConfig.keyKey) private var hotkeyKey: String = HotkeyKey.commandD.rawValue
+    @AppStorage(HotkeyConfig.modeKey) private var hotkeyMode: String = HotkeyMode.toggle.rawValue
     @AppStorage(ModelConfig.selectedModelNameKey) private var selectedModelName: String = "base"
     @State private var isDownloadingModel = false
     @State private var downloadingModelName: String?
