@@ -6,6 +6,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var floatingPanel: NSPanel!
     private var settingsWindow: NSWindow?
     private var hotkeyManager: HotkeyManager!
+    private var hotkeyKeyObserver: NSObjectProtocol?
     private var recordingStartApp: NSRunningApplication?
     let controller = RecordingController()
 
@@ -13,10 +14,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupFloatingPanel()
         requestAccessibilityIfNeeded()
         setupHotkey()
+        observeHotkeyKeyChange()
+    }
+
+    private func observeHotkeyKeyChange() {
+        hotkeyKeyObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            let currentKey = HotkeyConfig.key
+            if self.hotkeyManager.key != currentKey {
+                self.hotkeyManager.stop()
+                self.setupHotkey()
+            }
+        }
     }
 
     private func setupHotkey() {
         hotkeyManager = HotkeyManager(
+            key: HotkeyConfig.key,
             onPress: { [weak self] in
                 guard let self else { return }
                 switch HotkeyConfig.mode {
