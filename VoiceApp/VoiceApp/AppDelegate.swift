@@ -18,10 +18,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupHotkey() {
         hotkeyManager = HotkeyManager(
             onPress: { [weak self] in
-                self?.recordingStartApp = NSWorkspace.shared.frontmostApplication
-                Task { await self?.controller.startRecording() }
+                guard let self else { return }
+                switch HotkeyConfig.mode {
+                case .hold:
+                    self.recordingStartApp = NSWorkspace.shared.frontmostApplication
+                    Task { await self.controller.startRecording() }
+                case .toggle:
+                    if self.controller.state == .recording {
+                        Task {
+                            await self.controller.stopAndTranscribe()
+                            if case .done(let text) = self.controller.state {
+                                self.handleTranscriptionOutput(text)
+                            }
+                        }
+                    } else {
+                        self.recordingStartApp = NSWorkspace.shared.frontmostApplication
+                        Task { await self.controller.startRecording() }
+                    }
+                }
             },
             onRelease: { [weak self] in
+                guard HotkeyConfig.mode == .hold else { return }
                 Task {
                     guard let self else { return }
                     await self.controller.stopAndTranscribe()

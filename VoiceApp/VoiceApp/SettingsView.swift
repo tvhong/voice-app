@@ -2,6 +2,7 @@ import SwiftUI
 import WhisperKit
 
 struct SettingsView: View {
+    @AppStorage(HotkeyConfig.modeKey) private var hotkeyMode: String = HotkeyMode.hold.rawValue
     @AppStorage(ModelConfig.selectedModelNameKey) private var selectedModelName: String = "base"
     @State private var isDownloadingModel = false
     @State private var downloadingModelName: String?
@@ -21,6 +22,15 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("Hotkey") {
+                Picker("Fn key mode", selection: $hotkeyMode) {
+                    ForEach(HotkeyMode.allCases, id: \.rawValue) { mode in
+                        Text(mode.label).tag(mode.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+
             Section("WhisperKit") {
                 VStack(spacing: 8) {
                     ForEach(ModelConfig.availableModelNames, id: \.self) { model in
