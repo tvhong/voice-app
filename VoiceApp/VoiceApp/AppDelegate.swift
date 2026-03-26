@@ -24,8 +24,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            let currentKey = HotkeyConfig.key
-            if self.hotkeyManager.key != currentKey {
+            let currentShortcut = HotkeyConfig.shortcut
+            if self.hotkeyManager.shortcut != currentShortcut {
                 self.hotkeyManager.stop()
                 self.setupHotkey()
             }
@@ -34,7 +34,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupHotkey() {
         hotkeyManager = HotkeyManager(
-            key: HotkeyConfig.key,
+            shortcut: HotkeyConfig.shortcut,
             onPress: { [weak self] in
                 guard let self else { return }
                 switch HotkeyConfig.mode {

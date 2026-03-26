@@ -6,20 +6,16 @@ class HotkeyManager {
     private let onPress: () -> Void
     private let onRelease: () -> Void
     private var isKeyDown = false
-    let key: HotkeyKey
+    let shortcut: HotkeyShortcut
 
-    // Virtual key code for 'D'
-    private static let kVKCodeD: UInt16 = 2
-
-    init(key: HotkeyKey, onPress: @escaping () -> Void, onRelease: @escaping () -> Void) {
-        self.key = key
+    init(shortcut: HotkeyShortcut, onPress: @escaping () -> Void, onRelease: @escaping () -> Void) {
+        self.shortcut = shortcut
         self.onPress = onPress
         self.onRelease = onRelease
     }
 
     func start() {
-        switch key {
-        case .fn:
+        if shortcut.isFnOnly {
             let global = NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
                 self?.handleFn(event)
             }
@@ -29,22 +25,21 @@ class HotkeyManager {
             }
             if let global { globalMonitors.append(global) }
             if let local { localMonitors.append(local) }
-
-        case .commandD:
+        } else {
             let globalDown = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                self?.handleCommandD(event, isDown: true)
+                self?.handleKey(event, isDown: true)
             }
             let globalUp = NSEvent.addGlobalMonitorForEvents(matching: .keyUp) { [weak self] event in
-                self?.handleCommandD(event, isDown: false)
+                self?.handleKey(event, isDown: false)
             }
             let localDown = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                if self?.handleCommandD(event, isDown: true) == true {
-                    return nil // swallow the event
+                if self?.handleKey(event, isDown: true) == true {
+                    return nil
                 }
                 return event
             }
             let localUp = NSEvent.addLocalMonitorForEvents(matching: .keyUp) { [weak self] event in
-                if self?.handleCommandD(event, isDown: false) == true {
+                if self?.handleKey(event, isDown: false) == true {
                     return nil
                 }
                 return event
@@ -76,11 +71,13 @@ class HotkeyManager {
     }
 
     @discardableResult
-    private func handleCommandD(_ event: NSEvent, isDown: Bool) -> Bool {
-        guard event.keyCode == Self.kVKCodeD,
-              event.modifierFlags.contains(.command) else {
-            return false
-        }
+    private func handleKey(_ event: NSEvent, isDown: Bool) -> Bool {
+        guard event.keyCode == shortcut.keyCode else { return false }
+
+        // Check that the required modifiers are present (ignore extra modifiers like Fn, CapsLock)
+        let eventMods = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let requiredMods = shortcut.modifierFlags
+        guard eventMods.contains(requiredMods) else { return false }
 
         if isDown && !isKeyDown {
             isKeyDown = true

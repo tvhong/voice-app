@@ -2,8 +2,9 @@ import SwiftUI
 import WhisperKit
 
 struct SettingsView: View {
-    @AppStorage(HotkeyConfig.keyKey) private var hotkeyKey: String = HotkeyKey.commandD.rawValue
     @AppStorage(HotkeyConfig.modeKey) private var hotkeyMode: String = HotkeyMode.toggle.rawValue
+    @State private var currentShortcut = HotkeyConfig.shortcut
+    @State private var isRecordingShortcut = false
     @AppStorage(ModelConfig.selectedModelNameKey) private var selectedModelName: String = "base"
     @State private var isDownloadingModel = false
     @State private var downloadingModelName: String?
@@ -24,12 +25,14 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("Hotkey") {
-                Picker("Key", selection: $hotkeyKey) {
-                    ForEach(HotkeyKey.allCases, id: \.rawValue) { key in
-                        Text(key.label).tag(key.rawValue)
-                    }
+                HStack {
+                    Text("Shortcut")
+                    Spacer()
+                    ShortcutRecorderButton(
+                        shortcut: $currentShortcut,
+                        isRecording: $isRecordingShortcut
+                    )
                 }
-                .pickerStyle(.segmented)
 
                 Picker("Mode", selection: $hotkeyMode) {
                     ForEach(HotkeyMode.allCases, id: \.rawValue) { mode in
@@ -60,6 +63,9 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .onChange(of: currentShortcut) {
+            HotkeyConfig.shortcut = currentShortcut
+        }
         .onChange(of: selectedModelName) {
             if !isDownloadingModel {
                 downloadStatus = ""
