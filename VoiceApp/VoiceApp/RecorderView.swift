@@ -23,6 +23,9 @@ struct RecorderView: View {
     @ViewBuilder
     private var statusLabel: some View {
         switch controller.state {
+        case .loading:
+            Label("Loading model...", systemImage: "arrow.down.circle")
+                .symbolEffect(.variableColor.iterative)
         case .idle:
             Label("Ready to record", systemImage: "mic")
         case .recording:
@@ -58,7 +61,7 @@ struct RecorderView: View {
             }
             .buttonStyle(.borderedProminent)
 
-        case .transcribing:
+        case .loading, .transcribing:
             Button("Cancel", action: {})
                 .disabled(true)
         }

@@ -7,13 +7,19 @@ class TranscriptionService {
     private var whisperKit: WhisperKit?
     private var loadedModelName: String?
 
-    func transcribe(audioFrames: [Float]) async throws -> String {
+    func loadModel() async throws {
         let modelName = ModelConfig.selectedModelName
         if whisperKit == nil || loadedModelName != modelName {
+            logger.info("Preloading model: \(modelName)")
             let config = WhisperKitModelStore.makeConfig(model: modelName)
             whisperKit = try await WhisperKit(config)
             loadedModelName = modelName
+            logger.info("Model loaded: \(modelName)")
         }
+    }
+
+    func transcribe(audioFrames: [Float]) async throws -> String {
+        try await loadModel()
 
         let rawDuration = Double(audioFrames.count) / 16000
         let trimmed = trimSilence(audioFrames)
@@ -30,7 +36,7 @@ class TranscriptionService {
         let segments = try await whisperKit.transcribe(audioArray: framesForInference)
         let inferenceTime = Date().timeIntervalSince(inferenceStart)
         let rtf = trimmedDuration > 0 ? inferenceTime / trimmedDuration : 0
-        logger.info("inference: \(String(format: "%.2f", inferenceTime))s | RTF: \(String(format: "%.2f", rtf))x | model: \(modelName)")
+        logger.info("inference: \(String(format: "%.2f", inferenceTime))s | RTF: \(String(format: "%.2f", rtf))x | model: \(self.loadedModelName ?? "unknown")")
 
         let text = segments
             .map(\.text)

@@ -5,6 +5,7 @@ import Observation
 private let logger = Logger(subsystem: "com.voiceapp", category: "recording")
 
 enum AppState: Equatable {
+    case loading
     case idle
     case recording
     case transcribing
@@ -14,13 +15,24 @@ enum AppState: Equatable {
 
 @Observable
 class RecordingController {
-    var state: AppState = .idle
+    var state: AppState = .loading
     let history = TranscriptionHistory()
     private var recorder = AudioRecorder()
     private var transcriber = TranscriptionService()
 
+    func preloadModel() async {
+        state = .loading
+        do {
+            try await transcriber.loadModel()
+            state = .idle
+        } catch {
+            logger.error("Failed to preload model: \(error.localizedDescription)")
+            state = .idle  // still allow usage; model will retry on first transcription
+        }
+    }
+
     func startRecording() async {
-        guard state != .recording else { return }
+        guard state != .recording, state != .loading else { return }
         guard await AVCaptureDevice.requestAccess(for: .audio) else {
             state = .error(message: "Microphone access denied")
             return
@@ -56,7 +68,7 @@ class RecordingController {
             await startRecording()
         case .recording:
             await stopAndTranscribe()
-        case .transcribing:
+        case .loading, .transcribing:
             break
         }
     }

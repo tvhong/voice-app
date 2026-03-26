@@ -27,6 +27,10 @@ struct FloatingMicView: View {
     @ViewBuilder
     private var background: some View {
         switch controller.state {
+        case .loading:
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.gray.opacity(0.3))
+                .padding(3)
         case .idle, .done, .error:
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable()
@@ -46,6 +50,9 @@ struct FloatingMicView: View {
     @ViewBuilder
     private var foregroundIcon: some View {
         switch controller.state {
+        case .loading:
+            ProgressView()
+                .scaleEffect(0.6)
         case .idle, .done, .error:
             EmptyView()
         case .recording:

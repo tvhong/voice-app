@@ -19,6 +19,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         requestAccessibilityIfNeeded()
         setupHotkey()
         observeHotkeyKeyChange()
+        Task { await controller.preloadModel() }
     }
 
     private func observeHotkeyKeyChange() {
