@@ -10,6 +10,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var recordingStartApp: NSRunningApplication?
     let controller = RecordingController()
 
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupFloatingPanel()
         requestAccessibilityIfNeeded()
