@@ -15,7 +15,7 @@ struct FloatingMicView: View {
         .shadow(color: .black.opacity(0.3), radius: 6, y: 2)
         .contentShape(Rectangle())
         .onTapGesture {
-            Task { await controller.toggleRecording() }
+            onSettingsOpen()
         }
         .contextMenu {
             Button("Settings", action: onSettingsOpen)
