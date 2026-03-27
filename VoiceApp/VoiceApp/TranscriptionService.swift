@@ -4,6 +4,9 @@ import WhisperKit
 private let logger = Logger(subsystem: "com.voiceapp", category: "transcription")
 
 class TranscriptionService {
+    // Whisper emits these tokens when it detects no speech — treat as empty
+    private static let noSpeechTokens: Set<String> = ["[BLANK_AUDIO]", "(blank audio)", "[silence]", "(silence)"]
+
     private var whisperKit: WhisperKit?
     private var loadedModelName: String?
 
@@ -42,6 +45,8 @@ class TranscriptionService {
             .map(\.text)
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !Self.noSpeechTokens.contains(text) else { return "" }
 
         return text
     }
