@@ -5,8 +5,25 @@ import AVFoundation
     private var converter: AVAudioConverter?
     private var capturedSamples: [Float] = []
 
+    /// Called on the main thread when continuous silence exceeds the timeout.
+    var onSilenceTimeout: (() -> Void)?
+
+    /// Duration of silence (in seconds) before `onSilenceTimeout` fires. 0 = disabled.
+    var silenceTimeoutDuration: TimeInterval = 0
+
+    /// RMS threshold below which audio is considered silence.
+    private let silenceThreshold: Float = 0.01
+
+    /// Timestamp of last detected speech audio.
+    private var lastSpeechDate: Date = .distantPast
+
+    /// Whether the silence callback has already fired for the current silent stretch.
+    private var silenceCallbackFired = false
+
     func startRecording() throws {
         capturedSamples = []
+        lastSpeechDate = Date()
+        silenceCallbackFired = false
 
         let inputNode = engine.inputNode
         inputNode.removeTap(onBus: 0)   // no-op if no tap; prevents crash on rapid re-trigger
@@ -31,7 +48,18 @@ import AVFoundation
     func stopRecording() -> [Float] {
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
+        silenceTimeoutDuration = 0
+        onSilenceTimeout = nil
         return capturedSamples
+    }
+
+    /// Returns accumulated samples and resets the buffer without stopping recording.
+    func drainSamples() -> [Float] {
+        let samples = capturedSamples
+        capturedSamples = []
+        lastSpeechDate = Date()
+        silenceCallbackFired = false
+        return samples
     }
 
     private func process(buffer: AVAudioPCMBuffer, ratio: Double) {
@@ -69,7 +97,27 @@ import AVFoundation
         let samples = Array(UnsafeBufferPointer(start: channelData[0], count: frameCount))
 
         DispatchQueue.main.async { [weak self] in
-            self?.capturedSamples.append(contentsOf: samples)
+            guard let self else { return }
+            self.capturedSamples.append(contentsOf: samples)
+            self.checkSilence(samples: samples)
+        }
+    }
+
+    private func checkSilence(samples: [Float]) {
+        guard silenceTimeoutDuration > 0 else { return }
+
+        // Compute RMS of the chunk
+        let sumSq = samples.reduce(Float(0)) { $0 + $1 * $1 }
+        let rms = (sumSq / Float(max(samples.count, 1))).squareRoot()
+
+        if rms >= silenceThreshold {
+            lastSpeechDate = Date()
+            silenceCallbackFired = false
+        } else if !silenceCallbackFired,
+                  !capturedSamples.isEmpty,
+                  Date().timeIntervalSince(lastSpeechDate) >= silenceTimeoutDuration {
+            silenceCallbackFired = true
+            onSilenceTimeout?()
         }
     }
 

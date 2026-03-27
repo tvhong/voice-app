@@ -49,14 +49,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 case .toggle:
                     if self.controller.state == .recording {
                         Task {
-                            await self.controller.stopAndTranscribe()
-                            if case .done(let text) = self.controller.state {
+                            await self.controller.stopContinuousRecording()
+                            if case .done(let text) = self.controller.state, !text.isEmpty {
                                 self.handleTranscriptionOutput(text)
                             }
                         }
                     } else {
                         self.recordingStartApp = NSWorkspace.shared.frontmostApplication
-                        Task { await self.controller.startRecording() }
+                        self.controller.onSegmentTranscribed = { [weak self] text in
+                            self?.handleTranscriptionOutput(text)
+                        }
+                        Task { await self.controller.startContinuousRecording() }
                     }
                 }
             },

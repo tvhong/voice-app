@@ -50,5 +50,10 @@ Open **VoiceApp → Settings** (Cmd+,) to choose the WhisperKit model; it downlo
 
 ## TODOs:
 
+- [x] Support customising keyboard shortcuts (Cmd+Z)
+- [x] Clicking the floating should show settings
+- [x] Closing the settings shouldn't stop the app, it should still keep the floating mic
+- [x] On start up, load the model first, show a spinning circle
+- [ ] Allow continuous speech without lifting the key. Automatically detect pauses to transition into typing.
+- [ ] Onloading, the mic icon shouldn't show up
 - [ ] Allow custom dictionary (and post-processing)
-- [ ] Support customising keyboard shortcuts
