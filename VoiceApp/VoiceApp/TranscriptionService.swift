@@ -4,9 +4,6 @@ import WhisperKit
 private let logger = Logger(subsystem: "com.voiceapp", category: "transcription")
 
 class TranscriptionService {
-    // Strips bracketed annotations like [Background Sounds], [BLANK_AUDIO], etc.
-    private static let bracketedTokenPattern = /\[.*?\]/
-
     private var whisperKit: WhisperKit?
     private var loadedModelName: String?
 
@@ -44,12 +41,8 @@ class TranscriptionService {
         let rawText = segments
             .map(\.text)
             .joined(separator: " ")
-            .replacing(Self.bracketedTokenPattern, with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let text = TranscriptionPostProcessor.process(rawText)
-
-        return text
+        return TranscriptionPostProcessor.process(rawText)
     }
 
     // Strips leading and trailing silence using a 10ms RMS window at 16kHz.

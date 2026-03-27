@@ -1,14 +1,18 @@
-/// Post-processes raw transcription text by applying a dictionary of corrections.
+/// Post-processes raw transcription text.
 ///
-/// Add entries to `corrections` to fix terms that Whisper consistently mis-transcribes.
-/// Each key is a regex pattern (case-insensitive) and the value is its replacement.
+/// Runs two stages in order:
+///   1. Cleanup  — strips Whisper artifact tokens like [BLANK_AUDIO]
+///   2. Corrections — replaces mis-transcribed terms with the right spelling
 ///
-/// Example:
-///   "whisper kit" → "WhisperKit"
-///   "x code"      → "Xcode"
+/// To add a term correction, append an entry to `corrections`.
 struct TranscriptionPostProcessor {
 
-    // MARK: - Corrections dictionary
+    // MARK: - Stage 1: Whisper artifact cleanup
+
+    /// Removes bracketed tokens emitted by Whisper, e.g. [BLANK_AUDIO], [Background Sounds].
+    private static let bracketedTokenPattern = /\[.*?\]/
+
+    // MARK: - Stage 2: Term corrections
     //
     // Key:   regex pattern to match (case-insensitive)
     // Value: replacement string
@@ -26,9 +30,13 @@ struct TranscriptionPostProcessor {
 
     // MARK: - Public API
 
-    /// Applies all corrections to `text` and returns the result.
+    /// Runs all post-processing stages on `text` and returns the result.
     static func process(_ text: String) -> String {
-        corrections.reduce(text) { current, entry in
+        let cleaned = text
+            .replacing(bracketedTokenPattern, with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return corrections.reduce(cleaned) { current, entry in
             (try? current.replacing(
                 Regex(entry.pattern).ignoresCase(),
                 with: entry.replacement
