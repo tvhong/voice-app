@@ -20,10 +20,14 @@ import AVFoundation
     /// Whether the silence callback has already fired for the current silent stretch.
     private var silenceCallbackFired = false
 
+    /// Whether any speech has been detected since the last drain/start.
+    private var speechDetectedSinceDrain = false
+
     func startRecording() throws {
         capturedSamples = []
         lastSpeechDate = Date()
         silenceCallbackFired = false
+        speechDetectedSinceDrain = false
 
         let inputNode = engine.inputNode
         inputNode.removeTap(onBus: 0)   // no-op if no tap; prevents crash on rapid re-trigger
@@ -59,6 +63,7 @@ import AVFoundation
         capturedSamples = []
         lastSpeechDate = Date()
         silenceCallbackFired = false
+        speechDetectedSinceDrain = false
         return samples
     }
 
@@ -113,8 +118,9 @@ import AVFoundation
         if rms >= silenceThreshold {
             lastSpeechDate = Date()
             silenceCallbackFired = false
-        } else if !silenceCallbackFired,
-                  !capturedSamples.isEmpty,
+            speechDetectedSinceDrain = true
+        } else if speechDetectedSinceDrain,
+                  !silenceCallbackFired,
                   Date().timeIntervalSince(lastSpeechDate) >= silenceTimeoutDuration {
             silenceCallbackFired = true
             onSilenceTimeout?()
