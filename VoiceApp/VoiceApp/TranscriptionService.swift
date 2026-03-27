@@ -41,11 +41,13 @@ class TranscriptionService {
         let rtf = trimmedDuration > 0 ? inferenceTime / trimmedDuration : 0
         logger.info("inference: \(String(format: "%.2f", inferenceTime))s | RTF: \(String(format: "%.2f", rtf))x | model: \(self.loadedModelName ?? "unknown")")
 
-        let text = segments
+        let rawText = segments
             .map(\.text)
             .joined(separator: " ")
             .replacing(Self.bracketedTokenPattern, with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let text = TranscriptionPostProcessor.process(rawText)
 
         return text
     }
