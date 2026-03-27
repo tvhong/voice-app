@@ -48,7 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     Task { await self.controller.startRecording() }
                 case .toggle:
                     if self.controller.state == .recording {
-                        Task {
+                        Task { @MainActor in
                             await self.controller.stopContinuousRecording()
                             if case .done(let text) = self.controller.state, !text.isEmpty {
                                 self.handleTranscriptionOutput(text)
@@ -57,7 +57,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     } else {
                         self.recordingStartApp = NSWorkspace.shared.frontmostApplication
                         self.controller.onSegmentTranscribed = { [weak self] text in
-                            self?.handleTranscriptionOutput(text)
+                            DispatchQueue.main.async { self?.handleTranscriptionOutput(text) }
                         }
                         Task { await self.controller.startContinuousRecording() }
                     }
@@ -65,7 +65,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onRelease: { [weak self] in
                 guard HotkeyConfig.mode == .hold else { return }
-                Task {
+                Task { @MainActor in
                     guard let self else { return }
                     await self.controller.stopAndTranscribe()
                     if case .done(let text) = self.controller.state {
