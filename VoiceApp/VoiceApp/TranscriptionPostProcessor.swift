@@ -1,7 +1,11 @@
 struct TranscriptionPostProcessor {
 
     // Removes Whisper artifact tokens enclosed in brackets, e.g. [BLANK_AUDIO], (music), {noise}.
-    private static let artifactTokenPattern = /[\[\({].*?[\]\)}]/
+    private static let artifactTokenPattern = #/
+        [\[({]   # opening bracket: [, (, or {
+        .*?       # content (non-greedy)
+        [\])}]   # closing bracket: ], ), or }
+    /#
 
     // Regex corrections for mis-transcribed terms (case-insensitive).
     // Add entries here: (pattern: #"\bwrong\s+term\b"#, replacement: "Right Term")
