@@ -72,7 +72,7 @@ class RecordingController {
             return
         }
         do {
-            recorder.silenceTimeoutDuration = 2.0
+            recorder.silenceTimeoutDuration = 1.0
             recorder.onSilenceTimeout = { [weak self] in
                 guard let self else { return }
                 Task { await self.transcribeCurrentSegment() }
