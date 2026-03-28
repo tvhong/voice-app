@@ -13,6 +13,7 @@ struct TranscriptionPostProcessor {
     // Add entries here: (pattern: #"\bwrong\s+term\b"#, replacement: "Right Term")
     private static let corrections: [(pattern: String, replacement: String)] = [
         (pattern: #"\bcloud\s+code\b"#, replacement: "Claude Code"),
+        (pattern: #"\bNK\s+note\b"#, replacement: "Anki note"),
     ]
 
     static func process(_ text: String) -> String {
