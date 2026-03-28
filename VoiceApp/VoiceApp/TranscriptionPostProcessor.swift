@@ -1,3 +1,5 @@
+import Foundation
+
 struct TranscriptionPostProcessor {
 
     // Removes Whisper artifact tokens enclosed in brackets, e.g. [BLANK_AUDIO], (music), {noise}.
