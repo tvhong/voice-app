@@ -1,6 +1,9 @@
 import AppKit
 import CoreGraphics
+import OSLog
 import SwiftUI
+
+private let logger = Logger(subsystem: "com.voiceapp", category: "appdelegate")
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var floatingPanel: NSPanel!
@@ -45,6 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 switch HotkeyConfig.mode {
                 case .hold:
                     self.recordingStartApp = NSWorkspace.shared.frontmostApplication
+                    logger.info("onPress hold: recordingStartApp=\(self.recordingStartApp?.bundleIdentifier ?? "nil")")
                     Task { await self.controller.startRecording() }
                 case .toggle:
                     if self.controller.state == .recording {
@@ -56,6 +60,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                         }
                     } else {
                         self.recordingStartApp = NSWorkspace.shared.frontmostApplication
+                        logger.info("onPress toggle start: recordingStartApp=\(self.recordingStartApp?.bundleIdentifier ?? "nil")")
                         self.controller.onSegmentTranscribed = { [weak self] text in
                             DispatchQueue.main.async { self?.handleTranscriptionOutput(text) }
                         }
@@ -137,15 +142,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleTranscriptionOutput(_ text: String) {
         let currentApp = NSWorkspace.shared.frontmostApplication
-        guard let startApp = recordingStartApp,
-              currentApp?.bundleIdentifier == startApp.bundleIdentifier else {
+        let currentBundleID = currentApp?.bundleIdentifier ?? "nil"
+        let startBundleID = recordingStartApp?.bundleIdentifier ?? "nil"
+        let sameApp = currentBundleID == startBundleID
+        logger.info("handleTranscriptionOutput: startApp=\(startBundleID) currentApp=\(currentBundleID) sameApp=\(sameApp)")
+
+        guard recordingStartApp != nil, sameApp else {
             // User switched apps — copy to clipboard only
+            logger.info("handleTranscriptionOutput: switched app, copying to clipboard only")
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(text, forType: .string)
             return
         }
 
         // Same app — type directly via keyboard events (no clipboard involved)
+        logger.info("handleTranscriptionOutput: same app, typing text (\(text.count) chars)")
         typeText(text)
     }
 
